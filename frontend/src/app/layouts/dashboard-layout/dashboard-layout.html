@@ -1,0 +1,13 @@
+<div class="flex h-screen w-screen overflow-hidden bg-color5 text-color2">
+  <app-sidebar />
+
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <header class="flex h-16 shrink-0 items-center justify-end border-b border-color3/15 bg-white px-6">
+      <app-user-menu />
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-8">
+      <router-outlet />
+    </main>
+  </div>
+</div>
