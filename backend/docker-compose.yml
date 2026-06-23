@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zipshield-postgres
+    environment:
+      POSTGRES_USER: zipshield
+      POSTGRES_PASSWORD: zipshield
+      POSTGRES_DB: zipshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - zipshield_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zipshield -d zipshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  zipshield_pgdata:
