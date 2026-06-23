@@ -1,0 +1,7 @@
+# pnpm settings for this project (pnpm v10+ reads settings from here, not package.json).
+# Security overrides: force patched versions of vulnerable transitive build deps.
+# These are pulled in by @angular/build; remove each one once Angular bumps it upstream.
+overrides:
+  piscina: ">=5.1.5"        # GHSA-x9g3-xrwr-cwfg  (prototype pollution -> RCE, build-time)
+  esbuild: ">=0.28.1"       # GHSA-g7r4-m6w7-qqqr  (dev-server file read, Windows-only)
+  "@babel/core": ">=7.29.1" # GHSA-4x5r-pxfx-6jf8  (source-map file read, build-time)
