@@ -1,0 +1,196 @@
+<section class="flex flex-col gap-6">
+  <a
+    routerLink="/clients"
+    class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2"
+  >
+    ← Resumen
+  </a>
+
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-semibold text-color2">Detalle de clientes</h1>
+      <p class="text-sm text-color3">
+        Filtrá y entrá a cada cliente para ver su historial completo
+      </p>
+    </div>
+    @if (!creating()) {
+      <button
+        type="button"
+        (click)="startCreate()"
+        class="shrink-0 inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90"
+      >
+        + Nuevo cliente
+      </button>
+    }
+  </header>
+
+  @if (creating()) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Nuevo cliente</h2>
+      <form [formGroup]="createForm" (ngSubmit)="saveCreate()" class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Nombre</span>
+            <input type="text" formControlName="firstName" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Apellido</span>
+            <input type="text" formControlName="lastName" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Email</span>
+            <input type="email" formControlName="email" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Teléfono</span>
+            <input type="text" formControlName="phone" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Ciudad</span>
+            <input type="text" formControlName="city" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Número de cliente</span>
+            <input type="text" formControlName="clientNumber" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Estado</span>
+            <select formControlName="status" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Agente asignado</span>
+            <select formControlName="agentId" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              @for (a of agents(); track a.id) {
+                <option [value]="a.id">{{ a.fullName }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs uppercase tracking-wide text-color3">Foto (URL)</span>
+            <input type="text" formControlName="photoUrl" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="submit" [disabled]="saving() || createForm.invalid" class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-50">
+            @if (saving()) { Creando… } @else { Crear }
+          </button>
+          <button type="button" (click)="cancelCreate()" [disabled]="saving()" class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-color3">Cargando…</p>
+  } @else if (error(); as err) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">No se pudieron cargar los clientes</p>
+      <p class="mt-1 text-color3">{{ err }}</p>
+    </div>
+  } @else {
+    <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+      <div class="flex flex-col gap-2">
+        <span class="text-xs font-medium uppercase tracking-wide text-color3">Estado</span>
+        <div class="flex flex-wrap gap-2">
+          @for (f of statusFilters; track f.value) {
+            <button
+              type="button"
+              (click)="setStatusFilter(f.value)"
+              [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(statusFilter() === f.value)"
+            >
+              {{ f.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <span class="text-xs font-medium uppercase tracking-wide text-color3">Reclamos</span>
+        <div class="flex flex-wrap gap-2">
+          @for (f of claimsFilters; track f.value) {
+            <button
+              type="button"
+              (click)="setClaimsFilter(f.value)"
+              [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(claimsFilter() === f.value)"
+            >
+              {{ f.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="sm:ml-auto text-xs text-color3">
+        <span class="font-semibold text-color2">{{ filtered().length }}</span>
+        de {{ totalCount() }}
+      </div>
+    </div>
+
+    <ul class="flex flex-col gap-2">
+      @for (client of filtered(); track client.id) {
+        <li>
+          <a
+            [routerLink]="['/clients', 'details', client.id]"
+            class="flex items-center gap-4 rounded-lg border border-color3/15 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <img
+              [src]="client.photoUrl"
+              [alt]="client.firstName + ' ' + client.lastName"
+              loading="lazy"
+              class="h-10 w-10 shrink-0 rounded-full object-cover"
+            />
+            <div class="flex flex-1 flex-col gap-0.5 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="truncate text-sm font-semibold text-color2">
+                  {{ client.firstName }} {{ client.lastName }}
+                </span>
+                @if (client.status === 'active') {
+                  <span class="inline-flex items-center rounded-full bg-color4/30 px-2 py-0.5 text-[10px] font-medium text-color2">
+                    Activo
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center rounded-full bg-color3/20 px-2 py-0.5 text-[10px] font-medium text-color3">
+                    Inactivo
+                  </span>
+                }
+                @if (client.history.historyFlags.length > 0) {
+                  <span class="inline-flex items-center rounded-full bg-color2 px-2 py-0.5 text-[10px] font-medium text-color5">
+                    Riesgo
+                  </span>
+                }
+                @if (hasClaims(client.userId)) {
+                  <span class="inline-flex items-center rounded-full bg-color4 px-2 py-0.5 text-[10px] font-medium text-color2">
+                    Con reclamo
+                  </span>
+                }
+              </div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-color3">
+                <span class="font-mono">{{ client.clientNumber }}</span>
+                @if (client.city) {
+                  <span>{{ client.city }}</span>
+                }
+                <span>Agente: {{ agentName(client.agentId) }}</span>
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-0.5 text-right text-xs text-color3 shrink-0">
+              <span>
+                <span class="font-semibold text-color2">{{ client.history.pastClaimCount }}</span> reclamos previos
+              </span>
+              <span>{{ client.history.last90DaysClaimCount }} en 90 días</span>
+            </div>
+            <span class="text-color3 text-lg shrink-0">›</span>
+          </a>
+        </li>
+      } @empty {
+        <li class="rounded-lg border border-dashed border-color3/30 bg-white p-6 text-center text-sm text-color3">
+          No hay clientes que coincidan con los filtros.
+        </li>
+      }
+    </ul>
+  }
+</section>

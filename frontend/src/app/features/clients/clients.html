@@ -1,0 +1,171 @@
+<section class="flex flex-col gap-6">
+  <header class="flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold text-color2">Clientes</h1>
+    <p class="text-sm text-color3">
+      Resumen de los {{ totalCount() }} clientes registrados en el sistema
+    </p>
+  </header>
+
+  <a
+    routerLink="/clients/details"
+    class="inline-flex w-fit items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+  >
+    Ver lista completa de clientes →
+  </a>
+
+  @if (loading()) {
+    <p class="text-sm text-color3">Cargando…</p>
+  } @else if (error(); as err) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">No se pudieron cargar los clientes</p>
+      <p class="mt-1 text-color3">{{ err }}</p>
+    </div>
+  } @else {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Resumen</h2>
+      <div class="grid grid-cols-2 gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm md:grid-cols-5">
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Total</span>
+          <span class="text-2xl font-semibold text-color2">{{ totalCount() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Activos</span>
+          <span class="text-2xl font-semibold text-color2">{{ activeCount() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Inactivos</span>
+          <span class="text-2xl font-semibold text-color2">{{ inactiveCount() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Sin reclamos</span>
+          <span class="text-2xl font-semibold text-color2">{{ noClaimsCount() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Con riesgo</span>
+          <span class="text-2xl font-semibold text-color2">{{ riskCount() }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Distribución por categoría</h2>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        @for (chart of charts(); track chart.title) {
+          <article class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-5 shadow-sm">
+            <h3 class="text-sm font-semibold text-color2">{{ chart.title }}</h3>
+            <div class="flex items-center gap-5">
+              <div class="relative shrink-0">
+                <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+                  <g transform="rotate(-90 60 60)">
+                    @for (seg of chart.segments; track seg.label) {
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke-width="16"
+                        [attr.stroke]="seg.color"
+                        [attr.stroke-dasharray]="seg.dashArray"
+                        [attr.stroke-dashoffset]="seg.dashOffset"
+                      />
+                    }
+                  </g>
+                </svg>
+                <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-xl font-semibold text-color2">{{ chart.total }}</span>
+                </div>
+              </div>
+
+              <ul class="flex flex-1 flex-col gap-1.5">
+                @for (seg of chart.segments; track seg.label) {
+                  <li class="flex items-center gap-2 text-xs">
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full" [style.background]="seg.color"></span>
+                    <span class="flex-1 text-color3">{{ seg.label }}</span>
+                    <span class="font-semibold text-color2">{{ seg.value }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <header class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-lg font-semibold text-color2">Frecuencia de history flags</h2>
+        <span class="text-xs text-color3">
+          <span class="font-semibold text-color2">{{ cleanCount() }}</span> clientes sin observaciones
+        </span>
+      </header>
+
+      <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        @if (historyFlagCounts().length === 0) {
+          <p class="text-sm text-color3">No hay history flags registrados.</p>
+        } @else {
+          <ul class="flex flex-col gap-3">
+            @for (item of historyFlagCounts(); track item.flag) {
+              <li class="flex items-center gap-3">
+                <span class="w-52 shrink-0 text-xs text-color3">
+                  {{ formatRiskFlag(item.flag) }}
+                </span>
+                <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                  <div
+                    class="h-full rounded-full bg-color2 transition-[width] duration-500"
+                    [style.width.%]="historyFlagWidth(item.count)"
+                  ></div>
+                </div>
+                <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">
+                  {{ item.count }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Clientes por agente</h2>
+
+      <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <ul class="flex flex-col gap-2">
+          @for (row of clientsByAgent(); track row.id) {
+            <li class="flex items-center gap-3">
+              <span class="w-40 shrink-0 truncate text-xs text-color3">{{ row.fullName }}</span>
+              <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                <div
+                  class="h-full rounded-full bg-color4 transition-[width] duration-500"
+                  [style.width.%]="agentBarWidth(row.count)"
+                ></div>
+              </div>
+              <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Clientes por ciudad</h2>
+
+      <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <ul class="flex flex-col gap-2">
+          @for (row of clientsByCity(); track row.city) {
+            <li class="flex items-center gap-3">
+              <span class="w-40 shrink-0 truncate text-xs text-color3">{{ row.city }}</span>
+              <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                <div
+                  class="h-full rounded-full bg-color3 transition-[width] duration-500"
+                  [style.width.%]="cityBarWidth(row.count)"
+                ></div>
+              </div>
+              <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+  }
+</section>
