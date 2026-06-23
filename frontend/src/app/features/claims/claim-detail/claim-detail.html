@@ -1,0 +1,265 @@
+<section class="flex flex-col gap-6">
+  <a
+    routerLink="/claims/details"
+    class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2"
+  >
+    ← Detalle de reclamos
+  </a>
+
+  @if (notFound()) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">Reclamo no encontrado</p>
+      <p class="mt-1 text-color3">El reclamo solicitado no existe.</p>
+    </div>
+  } @else if (claim(); as c) {
+    <header class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-semibold text-color2">
+          Reclamo #{{ c.id.toString().padStart(3, '0') }}
+        </h1>
+        @if (!editing()) {
+          <button
+            type="button"
+            (click)="startEdit()"
+            class="ml-auto shrink-0 inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+          >
+            Editar
+          </button>
+        }
+        <span class="inline-flex items-center rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color2">
+          {{ objectLabel(c.object) }}
+        </span>
+        <span
+          [class]="'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' + statusClass(c.claimStatus)"
+        >
+          {{ statusLabel(c.claimStatus) }}
+        </span>
+        <span
+          [class]="'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' + severityClass(c.severity)"
+        >
+          {{ formatSeverity(c.severity) }}
+        </span>
+        @if (!c.validImage) {
+          <span class="inline-flex items-center rounded-full bg-color2 px-2.5 py-0.5 text-xs font-medium text-color5">
+            Imagen no válida
+          </span>
+        }
+      </div>
+
+      @if (client(); as cli) {
+        <a
+          [routerLink]="['/clients', 'details', cli.id]"
+          class="inline-flex w-fit items-center gap-3 rounded-md border border-color3/15 p-2 text-sm transition-colors hover:bg-color5"
+        >
+          <img
+            [src]="cli.photoUrl"
+            [alt]="cli.firstName + ' ' + cli.lastName"
+            class="h-9 w-9 rounded-full object-cover"
+          />
+          <div class="flex flex-col">
+            <span class="font-semibold text-color2">
+              {{ cli.firstName }} {{ cli.lastName }}
+            </span>
+            <span class="text-xs text-color3 font-mono">{{ cli.clientNumber }} · {{ cli.userId }}</span>
+          </div>
+          <span class="text-color3">›</span>
+        </a>
+      } @else {
+        <span class="text-xs text-color3">
+          Usuario: <span class="font-semibold text-color2">{{ c.userId }}</span>
+        </span>
+      }
+    </header>
+
+    @if (editing()) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-color2">Editar reclamo</h2>
+        <form
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm"
+        >
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Objeto</span>
+              <select formControlName="object" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+                <option value="car">Auto</option>
+                <option value="laptop">Laptop</option>
+                <option value="package">Paquete</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Resultado</span>
+              <select formControlName="claimStatus" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+                <option value="supported">Soportado</option>
+                <option value="contradicted">Contradicho</option>
+                <option value="not_enough_information">Sin evidencia</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Severidad</span>
+              <select formControlName="severity" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+                <option value="high">Alta</option>
+                <option value="medium">Media</option>
+                <option value="low">Baja</option>
+                <option value="unknown">Desconocida</option>
+                <option value="none">Ninguna</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Tipo de daño</span>
+              <input type="text" formControlName="issueType" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Parte</span>
+              <input type="text" formControlName="objectPart" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+            </label>
+            <div class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Banderas</span>
+              <div class="flex flex-col gap-2 pt-2">
+                <label class="flex items-center gap-2 text-sm text-color2">
+                  <input type="checkbox" formControlName="evidenceStandardMet" class="h-4 w-4 rounded border-color3/30" />
+                  Cumple estándar de evidencia
+                </label>
+                <label class="flex items-center gap-2 text-sm text-color2">
+                  <input type="checkbox" formControlName="validImage" class="h-4 w-4 rounded border-color3/30" />
+                  Imagen válida
+                </label>
+              </div>
+            </div>
+            <label class="flex flex-col gap-1 sm:col-span-2">
+              <span class="text-xs uppercase tracking-wide text-color3">Razón del estándar de evidencia</span>
+              <textarea formControlName="evidenceStandardMetReason" rows="3" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
+            </label>
+            <label class="flex flex-col gap-1 sm:col-span-2">
+              <span class="text-xs uppercase tracking-wide text-color3">Justificación del resultado</span>
+              <textarea formControlName="claimStatusJustification" rows="3" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="submit" [disabled]="saving() || form.invalid" class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-50">
+              @if (saving()) { Guardando… } @else { Guardar }
+            </button>
+            <button type="button" (click)="cancelEdit()" [disabled]="saving()" class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Evidencia visual</h2>
+      <div class="grid grid-cols-1 gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm sm:grid-cols-3">
+        @for (url of c.imageUrls; track url; let i = $index) {
+          <figure class="flex flex-col gap-1">
+            <div class="aspect-[4/3] overflow-hidden rounded-md bg-color5">
+              <img
+                [src]="url"
+                [alt]="'Imagen ' + (i + 1)"
+                loading="lazy"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <figcaption class="text-center text-xs text-color3 font-mono">img_{{ i + 1 }}</figcaption>
+          </figure>
+        }
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Conversación</h2>
+      <ul class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        @for (turn of parseConversation(c.conversation); track $index) {
+          <li class="flex flex-col gap-0.5">
+            <span
+              class="text-[10px] font-semibold uppercase tracking-wide"
+              [class.text-color2]="isCustomer(turn.speaker)"
+              [class.text-color3]="!isCustomer(turn.speaker)"
+            >
+              {{ turn.speaker }}
+            </span>
+            <p class="text-sm leading-relaxed text-color2">{{ turn.text }}</p>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Análisis</h2>
+
+      <div class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Estándar de evidencia
+            </h3>
+            @if (c.evidenceStandardMet) {
+              <span class="inline-flex items-center rounded-full bg-color4/40 px-2 py-0.5 text-[10px] font-semibold text-color2">
+                Cumple
+              </span>
+            } @else {
+              <span class="inline-flex items-center rounded-full bg-color3/30 px-2 py-0.5 text-[10px] font-semibold text-color2">
+                No cumple
+              </span>
+            }
+          </div>
+          <p class="text-sm leading-relaxed text-color3">
+            {{ c.evidenceStandardMetReason }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2 border-t border-color3/15 pt-4">
+          <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+            Justificación del resultado
+          </h3>
+          <p class="text-sm leading-relaxed text-color2">
+            {{ c.claimStatusJustification }}
+          </p>
+        </div>
+
+        <dl class="grid grid-cols-2 gap-4 border-t border-color3/15 pt-4 text-sm">
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Tipo de daño</dt>
+            <dd class="font-semibold text-color2">{{ formatIssueType(c.issueType) }}</dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Parte</dt>
+            <dd class="font-semibold text-color2">{{ formatObjectPart(c.objectPart) }}</dd>
+          </div>
+          <div class="col-span-2 flex flex-col gap-1">
+            <dt class="text-xs uppercase tracking-wide text-color3">Imágenes de soporte</dt>
+            <dd class="flex flex-wrap gap-1">
+              @if (c.supportingImageIds.length === 0) {
+                <span class="text-color3">—</span>
+              } @else {
+                @for (id of c.supportingImageIds; track id) {
+                  <span class="rounded bg-color5 px-1.5 py-0.5 font-mono text-xs text-color2">
+                    {{ id }}
+                  </span>
+                }
+              }
+            </dd>
+          </div>
+          <div class="col-span-2 flex flex-col gap-1">
+            <dt class="text-xs uppercase tracking-wide text-color3">Risk flags</dt>
+            <dd class="flex flex-wrap gap-1">
+              @for (flag of c.riskFlags; track flag) {
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                  [class.bg-color5]="flag === 'none'"
+                  [class.text-color3]="flag === 'none'"
+                  [class.bg-color2]="flag !== 'none'"
+                  [class.text-color5]="flag !== 'none'"
+                >
+                  {{ formatRiskFlag(flag) }}
+                </span>
+              }
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  }
+</section>

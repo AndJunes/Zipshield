@@ -1,0 +1,205 @@
+<section class="flex flex-col gap-6">
+  <a
+    routerLink="/claims"
+    class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2"
+  >
+    ← Resumen
+  </a>
+
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-semibold text-color2">Detalle de reclamos</h1>
+      <p class="text-sm text-color3">
+        Filtrá y entrá a cada caso para ver evidencia, conversación y análisis
+      </p>
+    </div>
+    @if (!creating()) {
+      <button
+        type="button"
+        (click)="startCreate()"
+        class="shrink-0 inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90"
+      >
+        + Nuevo reclamo
+      </button>
+    }
+  </header>
+
+  @if (creating()) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Nuevo reclamo</h2>
+      <form [formGroup]="createForm" (ngSubmit)="saveCreate()" class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Cliente</span>
+            <select formControlName="userId" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              @for (c of clients(); track c.id) {
+                <option [value]="c.userId">{{ c.firstName }} {{ c.lastName }} ({{ c.clientNumber }})</option>
+              }
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Objeto</span>
+            <select formControlName="object" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              <option value="car">Auto</option>
+              <option value="laptop">Laptop</option>
+              <option value="package">Paquete</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Resultado</span>
+            <select formControlName="claimStatus" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              <option value="not_enough_information">Sin evidencia</option>
+              <option value="supported">Soportado</option>
+              <option value="contradicted">Contradicho</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Severidad</span>
+            <select formControlName="severity" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              <option value="unknown">Desconocida</option>
+              <option value="high">Alta</option>
+              <option value="medium">Media</option>
+              <option value="low">Baja</option>
+              <option value="none">Ninguna</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Tipo de daño</span>
+            <input type="text" formControlName="issueType" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Parte</span>
+            <input type="text" formControlName="objectPart" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Banderas</span>
+            <div class="flex flex-col gap-2 pt-2">
+              <label class="flex items-center gap-2 text-sm text-color2">
+                <input type="checkbox" formControlName="evidenceStandardMet" class="h-4 w-4" />
+                Cumple estándar de evidencia
+              </label>
+              <label class="flex items-center gap-2 text-sm text-color2">
+                <input type="checkbox" formControlName="validImage" class="h-4 w-4" />
+                Imagen válida
+              </label>
+            </div>
+          </div>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs uppercase tracking-wide text-color3">Conversación (separá turnos con " | ", formato "Hablante: texto")</span>
+            <textarea formControlName="conversation" rows="4" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs uppercase tracking-wide text-color3">Razón del estándar de evidencia</span>
+            <textarea formControlName="evidenceStandardMetReason" rows="2" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs uppercase tracking-wide text-color3">Justificación del resultado</span>
+            <textarea formControlName="claimStatusJustification" rows="2" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="submit" [disabled]="saving() || createForm.invalid" class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-50">
+            @if (saving()) { Creando… } @else { Crear }
+          </button>
+          <button type="button" (click)="cancelCreate()" [disabled]="saving()" class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+    <div class="flex flex-col gap-2">
+      <span class="text-xs font-medium uppercase tracking-wide text-color3">Objeto</span>
+      <div class="flex flex-wrap gap-2">
+        @for (f of objectFilters; track f.value) {
+          <button
+            type="button"
+            (click)="setObjectFilter(f.value)"
+            [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(objectFilter() === f.value)"
+          >
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <span class="text-xs font-medium uppercase tracking-wide text-color3">Resultado</span>
+      <div class="flex flex-wrap gap-2">
+        @for (f of statusFilters; track f.value) {
+          <button
+            type="button"
+            (click)="setStatusFilter(f.value)"
+            [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(statusFilter() === f.value)"
+          >
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="sm:ml-auto text-xs text-color3">
+      <span class="font-semibold text-color2">{{ filteredCases().length }}</span>
+      de {{ cases().length }} casos
+    </div>
+  </div>
+
+  <ul class="flex flex-col gap-2">
+    @for (claim of filteredCases(); track claim.id) {
+      <li>
+        <a
+          [routerLink]="['/claims', 'details', claim.id]"
+          class="flex flex-wrap items-center gap-3 rounded-lg border border-color3/15 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <span class="text-sm font-semibold text-color2 shrink-0">
+            #{{ claim.id.toString().padStart(3, '0') }}
+          </span>
+          <span class="inline-flex items-center rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color2 shrink-0">
+            {{ objectLabel(claim.object) }}
+          </span>
+          <span
+            [class]="'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ' + statusClass(claim.claimStatus)"
+          >
+            {{ statusLabel(claim.claimStatus) }}
+          </span>
+
+          @if (clientByUserId(claim.userId); as client) {
+            <span class="text-xs text-color3 shrink-0">
+              Cliente:
+              <span class="font-semibold text-color2">
+                {{ client.firstName }} {{ client.lastName }}
+              </span>
+            </span>
+          } @else {
+            <span class="text-xs text-color3 shrink-0">
+              Usuario: <span class="font-semibold text-color2">{{ claim.userId }}</span>
+            </span>
+          }
+
+          <div class="flex flex-wrap gap-1 flex-1 min-w-0">
+            @for (flag of claim.riskFlags; track flag) {
+              <span
+                class="rounded-full px-2 py-0.5 text-[10px] font-medium truncate"
+                [class.bg-color5]="flag === 'none'"
+                [class.text-color3]="flag === 'none'"
+                [class.bg-color2]="flag !== 'none'"
+                [class.text-color5]="flag !== 'none'"
+              >
+                {{ formatRiskFlag(flag) }}
+              </span>
+            }
+          </div>
+
+          <span class="text-color3 text-lg shrink-0">›</span>
+        </a>
+      </li>
+    } @empty {
+      <li class="rounded-lg border border-dashed border-color3/30 bg-white p-6 text-center text-sm text-color3">
+        No hay reclamos que coincidan con los filtros seleccionados.
+      </li>
+    }
+  </ul>
+</section>
