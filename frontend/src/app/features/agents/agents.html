@@ -1,0 +1,373 @@
+<section class="flex flex-col gap-6">
+  <header class="flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold text-color2">Agentes</h1>
+    <p class="text-sm text-color3">
+      Resumen del equipo comercial: {{ totalCount() }} agentes activos
+    </p>
+  </header>
+
+  <a
+    routerLink="/agents/details"
+    class="inline-flex w-fit items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+  >
+    Ver lista completa de agentes →
+  </a>
+
+  @if (loading()) {
+    <p class="text-sm text-color3">Cargando…</p>
+  } @else if (error(); as err) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">No se pudieron cargar los agentes</p>
+      <p class="mt-1 text-color3">{{ err }}</p>
+    </div>
+  } @else {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Resumen</h2>
+
+      <div class="grid gap-8 rounded-lg border border-color3/15 bg-white p-6 shadow-sm lg:grid-cols-3 lg:gap-10">
+        <div class="flex flex-col items-center gap-6 sm:flex-row sm:gap-10">
+          <div class="relative shrink-0">
+            <svg viewBox="0 0 120 120" width="160" height="160" aria-hidden="true">
+              <g transform="rotate(-90 60 60)">
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  fill="none"
+                  stroke="var(--color-color4)"
+                  stroke-width="16"
+                  [attr.stroke-dasharray]="activeArc() + ' ' + circumference"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  fill="none"
+                  stroke="var(--color-color3)"
+                  stroke-width="16"
+                  [attr.stroke-dasharray]="inactiveArc() + ' ' + circumference"
+                  [attr.stroke-dashoffset]="-activeArc()"
+                />
+              </g>
+            </svg>
+            <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-3xl font-semibold text-color2">{{ totalCount() }}</span>
+              <span class="text-xs uppercase tracking-wide text-color3">Total</span>
+            </div>
+          </div>
+
+          <ul class="flex flex-col gap-3">
+            <li class="flex items-center gap-3">
+              <span class="h-3 w-3 rounded-full bg-color4"></span>
+              <span class="text-sm text-color3">Activos</span>
+              <span class="text-sm font-semibold text-color2">{{ activeCount() }}</span>
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="h-3 w-3 rounded-full bg-color3"></span>
+              <span class="text-sm text-color3">Inactivos</span>
+              <span class="text-sm font-semibold text-color2">{{ inactiveCount() }}</span>
+            </li>
+            <li class="flex items-center gap-3 border-t border-color3/15 pt-3">
+              <span class="h-3 w-3 rounded-full bg-color2"></span>
+              <span class="text-sm text-color3">Total</span>
+              <span class="text-sm font-semibold text-color2">{{ totalCount() }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-2">
+          <div class="flex flex-col gap-3">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Nuevos agentes
+            </h3>
+            <div class="flex h-40 items-end justify-around gap-2">
+              @for (bucket of joined(); track bucket.label) {
+                <div class="flex h-full flex-1 flex-col items-center gap-1">
+                  <div class="flex w-full flex-1 flex-col items-center justify-end">
+                    <span class="mb-1 text-xs font-semibold text-color2">
+                      {{ bucket.count }}
+                    </span>
+                    <div
+                      class="w-full min-h-[3px] rounded-t-md bg-color4 transition-[height] duration-500"
+                      [style.height.%]="joinedBarWidth(bucket.count)"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-color3">{{ bucket.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Aporte de nuevos agentes
+            </h3>
+            <div class="flex h-40 items-end justify-around gap-2">
+              @for (bucket of contribution(); track bucket.label) {
+                <div class="flex h-full flex-1 flex-col items-center gap-1">
+                  <div class="flex w-full flex-1 flex-col items-center justify-end">
+                    <span class="mb-1 whitespace-nowrap text-[10px] font-semibold text-color2">
+                      {{ bucket.value | currency:'USD':'symbol':'1.0-0' }}
+                    </span>
+                    <div
+                      class="w-full min-h-[3px] rounded-t-md bg-color4 transition-[height] duration-500"
+                      [style.height.%]="contributionBarWidth(bucket.value)"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-color3">{{ bucket.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Cartera de clientes</h2>
+
+      <div class="flex flex-col gap-8 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">
+              Total clientes asignados
+            </span>
+            <span class="text-2xl font-semibold text-color2">{{ totalClients() }}</span>
+          </div>
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">
+              Promedio por agente
+            </span>
+            <span class="text-2xl font-semibold text-color2">
+              {{ avgClients() | number:'1.1-1' }}
+            </span>
+          </div>
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">
+              Sin clientes
+            </span>
+            <span class="text-2xl font-semibold text-color2">{{ emptyAgents() }}</span>
+          </div>
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">
+              Exceso de clientes
+            </span>
+            <span class="text-2xl font-semibold text-color2">{{ excessAgents() }}</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Distribución de clientes por agente
+            </h3>
+            <div class="flex items-center gap-4 text-xs text-color3">
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color3"></span>
+                Sin clientes
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color4"></span>
+                Rango normal
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color2"></span>
+                Exceso
+              </span>
+            </div>
+          </div>
+
+          <ul class="flex flex-col gap-3">
+            @for (bucket of distribution(); track bucket.label) {
+              <li class="flex items-center gap-3">
+                <span class="w-24 shrink-0 text-xs text-color3">
+                  {{ bucket.label }} clientes
+                </span>
+                <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                  <div
+                    [class]="'h-full rounded-full transition-[width] duration-500 ' + toneClass(bucket.tone)"
+                    [style.width.%]="distributionBarWidth(bucket.count)"
+                  ></div>
+                </div>
+                <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">
+                  {{ bucket.count }}
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Reclamos</h2>
+
+      <div class="flex flex-col gap-8 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div class="flex flex-col gap-3">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Estado
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+                <span class="text-xs uppercase tracking-wide text-color3">
+                  Resueltos
+                </span>
+                <span class="text-2xl font-semibold text-color2">{{ resolvedTotal() }}</span>
+              </div>
+              <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+                <span class="text-xs uppercase tracking-wide text-color3">
+                  En proceso
+                </span>
+                <span class="text-2xl font-semibold text-color2">{{ inProgressTotal() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Resolución
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+                <span class="text-xs uppercase tracking-wide text-color3">
+                  Concedido
+                </span>
+                <span class="text-2xl font-semibold text-color2">{{ grantedTotal() }}</span>
+              </div>
+              <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+                <span class="text-xs uppercase tracking-wide text-color3">
+                  Rechazado
+                </span>
+                <span class="text-2xl font-semibold text-color2">{{ rejectedTotal() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Reclamos por agente
+            </h3>
+            <div class="flex items-center gap-4 text-xs text-color3">
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color4"></span>
+                Resueltos
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color3"></span>
+                En proceso
+              </span>
+            </div>
+          </div>
+
+          <ul class="flex flex-col gap-2">
+            @for (row of claimsByAgent(); track row.id) {
+              <li class="flex items-center gap-3">
+                <span class="w-36 shrink-0 truncate text-xs text-color3">
+                  {{ row.fullName }}
+                </span>
+                <div class="flex-1 flex h-3 overflow-hidden rounded-full bg-color5">
+                  <div
+                    class="h-full bg-color4 transition-[width] duration-500"
+                    [style.width.%]="claimsResolvedWidth(row.resolved)"
+                  ></div>
+                  <div
+                    class="h-full bg-color3 transition-[width] duration-500"
+                    [style.width.%]="claimsInProgressWidth(row.inProgress)"
+                  ></div>
+                </div>
+                <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">
+                  {{ row.total }}
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Ganancias y pérdidas</h2>
+
+      <div class="flex flex-col gap-8 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">Ganancias totales</span>
+            <span class="text-2xl font-semibold text-color2">
+              {{ totalGains() | currency:'USD':'symbol':'1.0-0' }}
+            </span>
+          </div>
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">Pérdidas totales</span>
+            <span class="text-2xl font-semibold text-color2">
+              {{ totalLosses() | currency:'USD':'symbol':'1.0-0' }}
+            </span>
+          </div>
+          <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+            <span class="text-xs uppercase tracking-wide text-color3">Resultado neto</span>
+            <span
+              class="text-2xl font-semibold"
+              [class.text-color2]="netResult() >= 0"
+              [class.text-color3]="netResult() < 0"
+            >
+              {{ netResult() | currency:'USD':'symbol':'1.0-0' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
+              Detalle por agente
+            </h3>
+            <div class="flex items-center gap-4 text-xs text-color3">
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color3"></span>
+                Pérdidas
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-sm bg-color4"></span>
+                Ganancias
+              </span>
+            </div>
+          </div>
+
+          <ul class="flex flex-col gap-2">
+            @for (row of pnl(); track row.id) {
+              <li class="flex items-center gap-3">
+                <span class="w-36 shrink-0 truncate text-xs text-color3">
+                  {{ row.fullName }}
+                </span>
+                <div class="flex flex-1 items-center">
+                  <div class="flex flex-1 justify-end">
+                    <div
+                      class="h-3 rounded-l-full bg-color3 transition-[width] duration-500"
+                      [style.width.%]="pnlBarWidth(row.losses)"
+                    ></div>
+                  </div>
+                  <div class="h-4 w-px shrink-0 bg-color3/30"></div>
+                  <div class="flex-1">
+                    <div
+                      class="h-3 rounded-r-full bg-color4 transition-[width] duration-500"
+                      [style.width.%]="pnlBarWidth(row.gains)"
+                    ></div>
+                  </div>
+                </div>
+                <span
+                  class="w-24 shrink-0 text-right text-sm font-semibold"
+                  [class.text-color2]="row.net >= 0"
+                  [class.text-color3]="row.net < 0"
+                >
+                  {{ row.net | currency:'USD':'symbol':'1.0-0' }}
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  }
+</section>
