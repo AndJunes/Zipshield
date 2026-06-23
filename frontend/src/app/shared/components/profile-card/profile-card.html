@@ -1,0 +1,37 @@
+<article
+  class="flex flex-col overflow-hidden rounded-lg border border-color3/15 bg-white shadow-sm transition-shadow hover:shadow-md"
+>
+  <div class="aspect-square w-full overflow-hidden bg-color5">
+    <img
+      [src]="data.photoUrl"
+      [alt]="data.fullName"
+      loading="lazy"
+      class="h-full w-full object-cover"
+    />
+  </div>
+
+  <div class="flex flex-col gap-3 p-4">
+    <h3 class="truncate text-lg font-semibold text-color2">
+      {{ data.fullName }}
+    </h3>
+
+    <div>
+      @if (data.status === 'active') {
+        <span class="inline-flex items-center rounded-full bg-color4/30 px-2.5 py-0.5 text-xs font-medium text-color2">
+          Activo
+        </span>
+      } @else {
+        <span class="inline-flex items-center rounded-full bg-color3/20 px-2.5 py-0.5 text-xs font-medium text-color3">
+          Inactivo
+        </span>
+      }
+    </div>
+
+    <div class="flex flex-col gap-0.5">
+      <span class="text-xs uppercase tracking-wide text-color3">Aporte</span>
+      <span class="text-lg font-semibold text-color2">
+        {{ data.contribution | currency:'USD':'symbol':'1.0-0' }}
+      </span>
+    </div>
+  </div>
+</article>
