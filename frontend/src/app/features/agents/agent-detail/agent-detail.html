@@ -1,0 +1,266 @@
+<section class="flex flex-col gap-6">
+  <a
+    routerLink="/agents/details"
+    class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2"
+  >
+    ← Detalle de agentes
+  </a>
+
+  @if (loading()) {
+    <p class="text-sm text-color3">Cargando…</p>
+  } @else if (notFound()) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">Agente no encontrado</p>
+    </div>
+  } @else if (agent(); as a) {
+    <header class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+      <img
+        [src]="a.photoUrl"
+        [alt]="a.fullName"
+        class="h-20 w-20 shrink-0 rounded-full object-cover"
+      />
+      <div class="flex flex-1 flex-col gap-1">
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-2xl font-semibold text-color2">{{ a.fullName }}</h1>
+          @if (a.status === 'active') {
+            <span class="inline-flex items-center rounded-full bg-color4/30 px-2.5 py-0.5 text-xs font-medium text-color2">
+              Activo
+            </span>
+          } @else {
+            <span class="inline-flex items-center rounded-full bg-color3/20 px-2.5 py-0.5 text-xs font-medium text-color3">
+              Inactivo
+            </span>
+          }
+        </div>
+        @if (supervisor(); as sup) {
+          <p class="text-sm text-color3">
+            Supervisor:
+            <a
+              [routerLink]="['/supervisors', 'details', sup.id]"
+              class="font-semibold text-color2 transition-colors hover:text-color4"
+            >
+              {{ sup.fullName }}
+            </a>
+          </p>
+        }
+      </div>
+      @if (!editing()) {
+        <button
+          type="button"
+          (click)="startEdit()"
+          class="shrink-0 inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+        >
+          Editar
+        </button>
+      }
+    </header>
+
+    @if (editing()) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-color2">Editar agente</h2>
+        <form
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm"
+        >
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Nombre completo</span>
+              <input
+                type="text"
+                formControlName="fullName"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              />
+            </label>
+
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Estado</span>
+              <select
+                formControlName="status"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              >
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </label>
+
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Supervisor</span>
+              <select
+                formControlName="supervisorId"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              >
+                @for (sup of supervisors(); track sup.id) {
+                  <option [value]="sup.id">{{ sup.fullName }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Foto (URL)</span>
+              <input
+                type="text"
+                formControlName="photoUrl"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              />
+            </label>
+
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Ganancias (USD)</span>
+              <input
+                type="number"
+                formControlName="contribution"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              />
+            </label>
+
+            <label class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-color3">Pérdidas (USD)</span>
+              <input
+                type="number"
+                formControlName="losses"
+                class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="submit"
+              [disabled]="saving() || form.invalid"
+              class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-50"
+            >
+              @if (saving()) { Guardando… } @else { Guardar }
+            </button>
+            <button
+              type="button"
+              (click)="cancelEdit()"
+              [disabled]="saving()"
+              class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Métricas</h2>
+      <div class="grid grid-cols-2 gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm md:grid-cols-5">
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Clientes</span>
+          <span class="text-2xl font-semibold text-color2">{{ a.clientCount }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Reclamos</span>
+          <span class="text-2xl font-semibold text-color2">{{ a.claims.resolved + a.claims.inProgress }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Ganancias</span>
+          <span class="text-2xl font-semibold text-color2">
+            {{ a.contribution | currency:'USD':'symbol':'1.0-0' }}
+          </span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Pérdidas</span>
+          <span class="text-2xl font-semibold text-color2">
+            {{ a.losses | currency:'USD':'symbol':'1.0-0' }}
+          </span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Neto</span>
+          <span
+            class="text-2xl font-semibold"
+            [class.text-color2]="net() >= 0"
+            [class.text-color3]="net() < 0"
+          >
+            {{ net() | currency:'USD':'symbol':'1.0-0' }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">
+        Reclamos del agente
+        <span class="text-sm font-normal text-color3">({{ assignedClaims().length }})</span>
+      </h2>
+      @if (assignedClaims().length === 0) {
+        <div class="rounded-lg border border-dashed border-color3/30 bg-white p-6 text-center text-sm text-color3">
+          Este agente no tiene reclamos activos.
+        </div>
+      } @else {
+        <ul class="flex flex-col gap-2">
+          @for (claim of assignedClaims(); track claim.id) {
+            <li>
+              <a
+                [routerLink]="['/claims', 'details', claim.id]"
+                class="flex flex-wrap items-center gap-3 rounded-lg border border-color3/15 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <span class="text-sm font-semibold text-color2 shrink-0">
+                  #{{ claim.id.toString().padStart(3, '0') }}
+                </span>
+                <span class="inline-flex items-center rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color2 shrink-0">
+                  {{ objectLabel(claim.object) }}
+                </span>
+                <span
+                  [class]="'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ' + statusClass(claim.claimStatus)"
+                >
+                  {{ statusLabel(claim.claimStatus) }}
+                </span>
+                <span class="text-color3 text-lg shrink-0 ml-auto">›</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">
+        Clientes asignados
+        <span class="text-sm font-normal text-color3">({{ assignedClients().length }})</span>
+      </h2>
+      @if (assignedClients().length === 0) {
+        <div class="rounded-lg border border-dashed border-color3/30 bg-white p-6 text-center text-sm text-color3">
+          Este agente no tiene clientes asignados.
+        </div>
+      } @else {
+        <ul class="flex flex-col gap-2">
+          @for (client of assignedClients(); track client.id) {
+            <li>
+              <a
+                [routerLink]="['/clients', 'details', client.id]"
+                class="flex items-center gap-3 rounded-lg border border-color3/15 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <img
+                  [src]="client.photoUrl"
+                  [alt]="client.firstName + ' ' + client.lastName"
+                  loading="lazy"
+                  class="h-9 w-9 shrink-0 rounded-full object-cover"
+                />
+                <div class="flex flex-1 flex-col min-w-0">
+                  <span class="truncate text-sm font-semibold text-color2">
+                    {{ client.firstName }} {{ client.lastName }}
+                  </span>
+                  <span class="text-xs text-color3 font-mono">{{ client.clientNumber }}</span>
+                </div>
+                @if (client.status === 'active') {
+                  <span class="inline-flex items-center rounded-full bg-color4/30 px-2 py-0.5 text-[10px] font-medium text-color2 shrink-0">
+                    Activo
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center rounded-full bg-color3/20 px-2 py-0.5 text-[10px] font-medium text-color3 shrink-0">
+                    Inactivo
+                  </span>
+                }
+                <span class="text-color3 text-lg shrink-0">›</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</section>
