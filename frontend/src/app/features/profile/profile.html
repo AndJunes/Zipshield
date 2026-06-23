@@ -1,0 +1,139 @@
+<section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+  <a routerLink="/" class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2">
+    ← Dashboard
+  </a>
+
+  @if (user(); as u) {
+    <header class="flex flex-col gap-4 rounded-2xl border border-color3/15 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+      <img [src]="u.photoUrl" [alt]="u.firstName" class="h-24 w-24 shrink-0 rounded-full object-cover" />
+      <div class="flex flex-1 flex-col gap-1">
+        <h1 class="text-2xl font-semibold text-color2">{{ u.firstName }} {{ u.lastName }}</h1>
+        <p class="text-sm text-color3">{{ u.email }}</p>
+        <span class="mt-1 inline-flex w-fit items-center rounded-full bg-color4/30 px-2.5 py-0.5 text-xs font-medium text-color2">
+          {{ roleLabel(u.role) }}
+        </span>
+      </div>
+    </header>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Datos de mi cuenta</h2>
+
+      <dl class="grid grid-cols-1 gap-4 rounded-2xl border border-color3/15 bg-white p-6 shadow-sm sm:grid-cols-2">
+        <div class="flex flex-col gap-0.5">
+          <dt class="text-xs uppercase tracking-wide text-color3">Nombre</dt>
+          <dd class="text-sm font-semibold text-color2">{{ u.firstName }}</dd>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <dt class="text-xs uppercase tracking-wide text-color3">Apellido</dt>
+          <dd class="text-sm font-semibold text-color2">{{ u.lastName || '—' }}</dd>
+        </div>
+        <div class="flex flex-col gap-0.5 sm:col-span-2">
+          <dt class="text-xs uppercase tracking-wide text-color3">Email</dt>
+          <dd class="break-all text-sm font-semibold text-color2">{{ u.email }}</dd>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <dt class="text-xs uppercase tracking-wide text-color3">Rol</dt>
+          <dd class="text-sm font-semibold text-color2">{{ roleLabel(u.role) }}</dd>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <dt class="text-xs uppercase tracking-wide text-color3">ID de usuario</dt>
+          <dd class="text-sm font-mono text-color2">{{ u.id }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    @if (isSupervisor() && selfSupervisor(); as s) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-color2">Información profesional</h2>
+        <dl class="grid grid-cols-1 gap-4 rounded-2xl border border-color3/15 bg-white p-6 shadow-sm sm:grid-cols-2">
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Estado</dt>
+            <dd>
+              @if (s.status === 'active') {
+                <span class="inline-flex items-center rounded-full bg-color4/30 px-2.5 py-0.5 text-xs font-medium text-color2">Activo</span>
+              } @else {
+                <span class="inline-flex items-center rounded-full bg-color3/20 px-2.5 py-0.5 text-xs font-medium text-color3">Inactivo</span>
+              }
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Fecha de ingreso</dt>
+            <dd class="text-sm font-semibold text-color2">{{ s.createdAt | date:'longDate' }}</dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Ganancias</dt>
+            <dd class="text-sm font-semibold text-color2">
+              {{ s.contribution | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Pérdidas</dt>
+            <dd class="text-sm font-semibold text-color2">
+              {{ s.losses | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5 sm:col-span-2">
+            <dt class="text-xs uppercase tracking-wide text-color3">Resultado neto</dt>
+            <dd
+              class="text-sm font-semibold"
+              [class.text-color2]="supervisorNet() >= 0"
+              [class.text-color3]="supervisorNet() < 0"
+            >
+              {{ supervisorNet() | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    @if (isAgent() && selfAgent(); as a) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-color2">Información profesional</h2>
+        <dl class="grid grid-cols-1 gap-4 rounded-2xl border border-color3/15 bg-white p-6 shadow-sm sm:grid-cols-2">
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Estado</dt>
+            <dd>
+              @if (a.status === 'active') {
+                <span class="inline-flex items-center rounded-full bg-color4/30 px-2.5 py-0.5 text-xs font-medium text-color2">Activo</span>
+              } @else {
+                <span class="inline-flex items-center rounded-full bg-color3/20 px-2.5 py-0.5 text-xs font-medium text-color3">Inactivo</span>
+              }
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Fecha de ingreso</dt>
+            <dd class="text-sm font-semibold text-color2">{{ a.createdAt | date:'longDate' }}</dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Supervisor</dt>
+            <dd class="text-sm font-semibold text-color2">
+              {{ mySupervisor()?.fullName ?? '—' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Ganancias</dt>
+            <dd class="text-sm font-semibold text-color2">
+              {{ a.contribution | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <dt class="text-xs uppercase tracking-wide text-color3">Pérdidas</dt>
+            <dd class="text-sm font-semibold text-color2">
+              {{ a.losses | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-0.5 sm:col-span-2">
+            <dt class="text-xs uppercase tracking-wide text-color3">Resultado neto</dt>
+            <dd
+              class="text-sm font-semibold"
+              [class.text-color2]="agentNet() >= 0"
+              [class.text-color3]="agentNet() < 0"
+            >
+              {{ agentNet() | currency:'USD':'symbol':'1.0-0' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    }
+  }
+</section>
