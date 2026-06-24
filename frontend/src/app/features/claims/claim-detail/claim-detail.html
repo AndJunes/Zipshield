@@ -18,13 +18,31 @@
           Reclamo #{{ c.id.toString().padStart(3, '0') }}
         </h1>
         @if (!editing()) {
-          <button
-            type="button"
-            (click)="startEdit()"
-            class="ml-auto shrink-0 inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
-          >
-            Editar
-          </button>
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              (click)="analyze()"
+              [disabled]="analyzing()"
+              class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-60"
+            >
+              @if (analyzing()) {
+                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Analizando…
+              } @else {
+                Analizar con IA
+              }
+            </button>
+            <button
+              type="button"
+              (click)="startEdit()"
+              class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+            >
+              Editar
+            </button>
+          </div>
         }
         <span class="inline-flex items-center rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color2">
           {{ objectLabel(c.object) }}
@@ -70,6 +88,10 @@
         </span>
       }
     </header>
+
+    @if (analyzeError(); as err) {
+      <p class="rounded-md border border-color3/30 bg-white p-3 text-sm text-color2">{{ err }}</p>
+    }
 
     @if (editing()) {
       <section class="flex flex-col gap-3">
@@ -187,9 +209,23 @@
     </section>
 
     <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold text-color2">Análisis</h2>
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="text-lg font-semibold text-color2">Análisis</h2>
+        <span class="inline-flex items-center rounded-full bg-color4/40 px-2.5 py-0.5 text-xs font-medium text-color2">
+          Generado por IA
+        </span>
+        <span class="font-mono text-[11px] text-color3">{{ aiModel }}</span>
+        @if (analyzedAt()) {
+          <span class="ml-auto text-[11px] text-color3">Analizado recién</span>
+        }
+      </div>
 
       <div class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        @if (notAnalyzed()) {
+          <p class="rounded-md bg-color5 p-3 text-xs text-color3">
+            Este reclamo aún no fue analizado por IA. Pulsá “Analizar con IA” para generar el análisis.
+          </p>
+        }
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
             <h3 class="text-xs font-medium uppercase tracking-wide text-color3">
@@ -246,15 +282,24 @@
             <dt class="text-xs uppercase tracking-wide text-color3">Risk flags</dt>
             <dd class="flex flex-wrap gap-1">
               @for (flag of c.riskFlags; track flag) {
-                <span
-                  class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  [class.bg-color5]="flag === 'none'"
-                  [class.text-color3]="flag === 'none'"
-                  [class.bg-color2]="flag !== 'none'"
-                  [class.text-color5]="flag !== 'none'"
-                >
-                  {{ formatRiskFlag(flag) }}
-                </span>
+                @if (flag === 'none') {
+                  <span class="rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color3">
+                    {{ formatRiskFlag(flag) }}
+                  </span>
+                } @else if (isSecurityFlag(flag)) {
+                  <span class="inline-flex items-center gap-1 rounded-full bg-color2 px-2.5 py-0.5 text-xs font-medium text-color5">
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    {{ formatRiskFlag(flag) }}
+                  </span>
+                } @else {
+                  <span class="rounded-full bg-color2/10 px-2.5 py-0.5 text-xs font-medium text-color2">
+                    {{ formatRiskFlag(flag) }}
+                  </span>
+                }
               }
             </dd>
           </div>

@@ -13,7 +13,6 @@ import {
 } from '../../../core/models';
 import { ClientsService } from '../../clients/clients.service';
 import { ClaimsService } from '../claims.service';
-import { MOCK_CLAIM_CASES } from '../mock-claim-cases';
 import {
   formatIssueType,
   formatObjectPart,
@@ -42,6 +41,16 @@ export class ClaimDetail {
   readonly clients = signal<ClientCard[]>([]);
   readonly editing = signal(false);
   readonly saving = signal(false);
+  readonly analyzing = signal(false);
+  readonly analyzeError = signal<string | null>(null);
+  readonly analyzedAt = signal<Date | null>(null);
+  readonly aiModel = 'gemini-2.5-flash-lite';
+
+  private readonly securityFlags = new Set([
+    'text_instruction_present',
+    'manual_review_required',
+    'possible_manipulation',
+  ]);
 
   readonly form = this.fb.group({
     object: this.fb.control<ClaimObject>('car'),
@@ -61,6 +70,13 @@ export class ClaimDetail {
     return this.clients().find((cli) => cli.userId === c.userId) ?? null;
   });
 
+  readonly notAnalyzed = computed(() => {
+    const c = this.claim();
+    if (!c) return false;
+    const reason = (c.claimStatusJustification ?? '').trim();
+    return reason === '' || reason === 'Pendiente de análisis';
+  });
+
   constructor() {
     const id = this.routeId();
     if (!Number.isFinite(id)) {
@@ -68,12 +84,16 @@ export class ClaimDetail {
       return;
     }
 
-    const found = MOCK_CLAIM_CASES.find((c) => c.id === id);
-    if (!found) {
-      this.notFound.set(true);
-    } else {
-      this.claim.set(found);
-    }
+    this.claimsService.getById(id).subscribe({
+      next: (found) => {
+        if (!found) {
+          this.notFound.set(true);
+        } else {
+          this.claim.set(found);
+        }
+      },
+      error: () => this.notFound.set(true),
+    });
 
     this.clientsService.list().subscribe({
       next: (data) => this.clients.set(data),
@@ -118,6 +138,28 @@ export class ClaimDetail {
       },
       error: () => this.saving.set(false),
     });
+  }
+
+  analyze(): void {
+    const c = this.claim();
+    if (!c) return;
+    this.analyzing.set(true);
+    this.analyzeError.set(null);
+    this.claimsService.analyze(c.id).subscribe({
+      next: (updated) => {
+        this.claim.set(updated);
+        this.analyzedAt.set(new Date());
+        this.analyzing.set(false);
+      },
+      error: () => {
+        this.analyzeError.set('No se pudo analizar. Revisá la API key o la conexión.');
+        this.analyzing.set(false);
+      },
+    });
+  }
+
+  isSecurityFlag(flag: string): boolean {
+    return this.securityFlags.has(flag);
   }
 
   parseConversation(raw: string): { speaker: string; text: string }[] {
