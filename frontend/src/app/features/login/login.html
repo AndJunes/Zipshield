@@ -60,7 +60,7 @@
             @for (c of chips().admin; track c.email) {
               <button
                 type="button"
-                (click)="prefill(c.email)"
+                (click)="prefill(c)"
                 class="rounded-full border border-color3/30 bg-white px-3 py-1 text-xs font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
               >
                 {{ c.label }}
@@ -77,7 +77,7 @@
             @for (c of chips().supervisors; track c.email) {
               <button
                 type="button"
-                (click)="prefill(c.email)"
+                (click)="prefill(c)"
                 class="rounded-full border border-color3/30 bg-white px-3 py-1 text-xs font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
               >
                 {{ c.label }}
@@ -94,7 +94,7 @@
             @for (c of chips().agents; track c.email) {
               <button
                 type="button"
-                (click)="prefill(c.email)"
+                (click)="prefill(c)"
                 class="rounded-full border border-color3/30 bg-white px-3 py-1 text-xs font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
               >
                 {{ c.label }}

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -93,6 +93,17 @@ export class Login {
   };
   readonly supervisors = buildSupervisorAccounts();
   readonly agents = buildAgentAccounts();
+
+  readonly chips = computed(() => ({
+    admin: [this.admin],
+    supervisors: this.supervisors,
+    agents: this.agents,
+  }));
+
+  readonly hasChips = computed(() => {
+    const c = this.chips();
+    return c.admin.length + c.supervisors.length + c.agents.length > 0;
+  });
 
   prefill(account: DemoAccount): void {
     this.form.patchValue({ email: account.email, password: account.password });
