@@ -28,6 +28,10 @@
     <section class="flex flex-col gap-3">
       <h2 class="text-lg font-semibold text-color2">Nuevo reclamo</h2>
       <form [formGroup]="createForm" (ngSubmit)="saveCreate()" class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <p class="rounded-md bg-color5 p-3 text-xs text-color3">
+          Solo cargás los datos de entrada. El resultado, la severidad, las banderas y las
+          justificaciones los genera la IA con “Analizar con IA” una vez creado el reclamo.
+        </p>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label class="flex flex-col gap-1">
             <span class="text-xs uppercase tracking-wide text-color3">Cliente</span>
@@ -45,57 +49,38 @@
               <option value="package">Paquete</option>
             </select>
           </label>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs uppercase tracking-wide text-color3">Resultado</span>
-            <select formControlName="claimStatus" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
-              <option value="not_enough_information">Sin evidencia</option>
-              <option value="supported">Soportado</option>
-              <option value="contradicted">Contradicho</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs uppercase tracking-wide text-color3">Severidad</span>
-            <select formControlName="severity" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
-              <option value="unknown">Desconocida</option>
-              <option value="high">Alta</option>
-              <option value="medium">Media</option>
-              <option value="low">Baja</option>
-              <option value="none">Ninguna</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs uppercase tracking-wide text-color3">Tipo de daño</span>
-            <input type="text" formControlName="issueType" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
-          </label>
-          <label class="flex flex-col gap-1">
-            <span class="text-xs uppercase tracking-wide text-color3">Parte</span>
-            <input type="text" formControlName="objectPart" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
-          </label>
-          <div class="flex flex-col gap-1">
-            <span class="text-xs uppercase tracking-wide text-color3">Banderas</span>
-            <div class="flex flex-col gap-2 pt-2">
-              <label class="flex items-center gap-2 text-sm text-color2">
-                <input type="checkbox" formControlName="evidenceStandardMet" class="h-4 w-4" />
-                Cumple estándar de evidencia
-              </label>
-              <label class="flex items-center gap-2 text-sm text-color2">
-                <input type="checkbox" formControlName="validImage" class="h-4 w-4" />
-                Imagen válida
-              </label>
-            </div>
-          </div>
           <label class="flex flex-col gap-1 sm:col-span-2">
             <span class="text-xs uppercase tracking-wide text-color3">Conversación (separá turnos con " | ", formato "Hablante: texto")</span>
             <textarea formControlName="conversation" rows="4" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
           </label>
-          <label class="flex flex-col gap-1 sm:col-span-2">
-            <span class="text-xs uppercase tracking-wide text-color3">Razón del estándar de evidencia</span>
-            <textarea formControlName="evidenceStandardMetReason" rows="2" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
-          </label>
-          <label class="flex flex-col gap-1 sm:col-span-2">
-            <span class="text-xs uppercase tracking-wide text-color3">Justificación del resultado</span>
-            <textarea formControlName="claimStatusJustification" rows="2" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"></textarea>
-          </label>
+          <div class="flex flex-col gap-2 sm:col-span-2" formArrayName="imageUrls">
+            <span class="text-xs uppercase tracking-wide text-color3">Imágenes (URLs)</span>
+            @for (ctrl of imageUrls.controls; track $index) {
+              <div class="flex items-center gap-2">
+                <input
+                  type="url"
+                  [formControlName]="$index"
+                  placeholder="https://…"
+                  class="flex-1 rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  (click)="removeImage($index)"
+                  [disabled]="imageUrls.length === 1"
+                  class="shrink-0 rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 transition-colors hover:bg-color4/20 hover:border-color4 disabled:opacity-40"
+                >
+                  Quitar
+                </button>
+              </div>
+            }
+            <button
+              type="button"
+              (click)="addImage()"
+              class="w-fit rounded-md border border-color3/30 bg-white px-3 py-1.5 text-xs font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+            >
+              + Agregar imagen
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center gap-2">

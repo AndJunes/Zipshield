@@ -41,8 +41,14 @@ class ClaimBase(BaseModel):
     severity: ClaimSeverity = ClaimSeverity.unknown
 
 
-class ClaimCreate(ClaimBase):
-    pass
+class ClaimCreate(BaseModel):
+    """Al crear, solo se reciben los 4 datos de entrada. Los 10 campos de análisis
+    los genera la IA después (POST /claims/{id}/analyze)."""
+
+    user_id: str
+    object: ClaimObject
+    conversation: str
+    image_urls: list[str] = []
 
 
 class ClaimUpdate(BaseModel):

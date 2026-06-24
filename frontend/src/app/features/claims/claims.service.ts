@@ -11,9 +11,9 @@ import {
   toClaimCase,
 } from '../../core/adapters/claim.adapter';
 
-export type ClaimInput = Omit<
+export type ClaimInput = Pick<
   ClaimCase,
-  'id' | 'imageUrls' | 'supportingImageIds' | 'riskFlags'
+  'userId' | 'object' | 'conversation' | 'imageUrls'
 >;
 
 @Injectable({ providedIn: 'root' })

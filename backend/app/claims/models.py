@@ -19,7 +19,9 @@ class ClaimCase(Base):
     risk_flags: Mapped[list[str]] = mapped_column(JSON, default=list)
     issue_type: Mapped[str] = mapped_column(String(50), default="unknown")
     object_part: Mapped[str] = mapped_column(String(50), default="unknown")
-    claim_status: Mapped[str] = mapped_column(String(30), index=True)
+    claim_status: Mapped[str] = mapped_column(
+        String(30), index=True, default="not_enough_information"
+    )
     claim_status_justification: Mapped[str] = mapped_column(Text, default="")
     supporting_image_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     valid_image: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -1,16 +1,21 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 
 import {
   ClaimCase,
   ClaimCaseStatus,
   ClaimObject,
-  ClaimSeverity,
   ClientCard,
 } from '../../../core/models';
 import { ClientsService } from '../../clients/clients.service';
-import { ClaimsService } from '../claims.service';
+import { ClaimsService, ClaimInput } from '../claims.service';
 import { formatRiskFlag } from '../../../shared/utils/claim-labels';
 
 type ObjectFilter = ClaimObject | 'all';
@@ -37,15 +42,23 @@ export class ClaimsDetails {
     userId: ['', Validators.required],
     object: this.fb.control<ClaimObject>('car'),
     conversation: ['', Validators.required],
-    claimStatus: this.fb.control<ClaimCaseStatus>('not_enough_information'),
-    severity: this.fb.control<ClaimSeverity>('unknown'),
-    issueType: ['unknown', Validators.required],
-    objectPart: ['unknown', Validators.required],
-    evidenceStandardMet: [false],
-    evidenceStandardMetReason: ['Pendiente de revisión', Validators.required],
-    claimStatusJustification: ['Pendiente de análisis', Validators.required],
-    validImage: [true],
+    imageUrls: this.fb.array<FormControl<string>>([this.fb.control('')]),
   });
+
+  get imageUrls(): FormArray<FormControl<string>> {
+    return this.createForm.controls.imageUrls;
+  }
+
+  addImage(): void {
+    this.imageUrls.push(this.fb.control(''));
+  }
+
+  removeImage(index: number): void {
+    this.imageUrls.removeAt(index);
+    if (this.imageUrls.length === 0) {
+      this.addImage();
+    }
+  }
 
   readonly filteredCases = computed(() => {
     const obj = this.objectFilter();
@@ -103,15 +116,9 @@ export class ClaimsDetails {
       userId: this.clients()[0]?.userId ?? '',
       object: 'car',
       conversation: 'Customer:  | Agent: ',
-      claimStatus: 'not_enough_information',
-      severity: 'unknown',
-      issueType: 'unknown',
-      objectPart: 'unknown',
-      evidenceStandardMet: false,
-      evidenceStandardMetReason: 'Pendiente de revisión',
-      claimStatusJustification: 'Pendiente de análisis',
-      validImage: true,
     });
+    this.imageUrls.clear();
+    this.imageUrls.push(this.fb.control(''));
     this.creating.set(true);
   }
 
@@ -124,8 +131,15 @@ export class ClaimsDetails {
       this.createForm.markAllAsTouched();
       return;
     }
+    const raw = this.createForm.getRawValue();
+    const input: ClaimInput = {
+      userId: raw.userId,
+      object: raw.object,
+      conversation: raw.conversation,
+      imageUrls: raw.imageUrls.map((u) => u.trim()).filter((u) => u.length > 0),
+    };
     this.saving.set(true);
-    this.claimsService.create(this.createForm.getRawValue()).subscribe({
+    this.claimsService.create(input).subscribe({
       next: () => {
         this.creating.set(false);
         this.saving.set(false);
