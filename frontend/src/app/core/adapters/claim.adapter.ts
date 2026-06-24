@@ -39,14 +39,7 @@ export interface ApiClaimCreate {
   user_id: string;
   object: 'car' | 'laptop' | 'package';
   conversation: string;
-  evidence_standard_met: boolean;
-  evidence_standard_met_reason: string;
-  issue_type: string;
-  object_part: string;
-  claim_status: 'supported' | 'contradicted' | 'not_enough_information';
-  claim_status_justification: string;
-  valid_image: boolean;
-  severity: string;
+  image_urls: string[];
 }
 
 export function toClaimCase(api: ApiClaim): ClaimCase {
@@ -87,18 +80,13 @@ export function fromClaimPartial(partial: Partial<ClaimCase>): ApiClaimPatch {
   return out;
 }
 
-export function fromClaimCreate(input: Omit<ClaimCase, 'id' | 'imageUrls' | 'supportingImageIds' | 'riskFlags'>): ApiClaimCreate {
+export function fromClaimCreate(
+  input: Pick<ClaimCase, 'userId' | 'object' | 'conversation' | 'imageUrls'>,
+): ApiClaimCreate {
   return {
     user_id: input.userId,
     object: input.object,
     conversation: input.conversation,
-    evidence_standard_met: input.evidenceStandardMet,
-    evidence_standard_met_reason: input.evidenceStandardMetReason,
-    issue_type: input.issueType,
-    object_part: input.objectPart,
-    claim_status: input.claimStatus,
-    claim_status_justification: input.claimStatusJustification,
-    valid_image: input.validImage,
-    severity: input.severity,
+    image_urls: input.imageUrls,
   };
 }
