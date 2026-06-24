@@ -44,4 +44,10 @@ export class ClaimsService {
       .post<ApiClaim>(`${this.baseUrl}/claims`, fromClaimCreate(input))
       .pipe(map(toClaimCase));
   }
+
+  analyze(id: number): Observable<ClaimCase> {
+    return this.http
+      .post<ApiClaim>(`${this.baseUrl}/claims/${id}/analyze`, {})
+      .pipe(map(toClaimCase));
+  }
 }
