@@ -3,22 +3,15 @@ from sqlalchemy.orm import Session
 
 from app.agents.models import Agent
 from app.auth.models import User
+from app.clients.history import compute_client_history
 from app.clients.models import Client
-from app.clients.schemas import ClientCreate, ClientHistory, ClientRead, ClientUpdate
+from app.clients.schemas import ClientCreate, ClientRead, ClientUpdate
 from app.core.exceptions import ConflictError, NotFoundError
 
 
-def _to_read(client: Client) -> ClientRead:
+def _to_read(db: Session, client: Client) -> ClientRead:
     data = ClientRead.model_validate(client)
-    data.history = ClientHistory(
-        past_claim_count=client.past_claim_count,
-        accept_claim=client.accept_claim,
-        manual_review_claim=client.manual_review_claim,
-        rejected_claim=client.rejected_claim,
-        last_90_days_claim_count=client.last_90_days_claim_count,
-        history_flags=client.history_flags or [],
-        history_summary=client.history_summary,
-    )
+    data.history = compute_client_history(db, client)
     return data
 
 
@@ -35,7 +28,7 @@ def _filter_by_role(stmt, current_user: User):
 
 def list_clients(db: Session, current_user: User) -> list[ClientRead]:
     stmt = _filter_by_role(select(Client), current_user).order_by(Client.id.asc())
-    return [_to_read(c) for c in db.scalars(stmt).all()]
+    return [_to_read(db, c) for c in db.scalars(stmt).all()]
 
 
 def _get_client_orm(db: Session, client_id: int) -> Client:
@@ -46,7 +39,7 @@ def _get_client_orm(db: Session, client_id: int) -> Client:
 
 
 def get_client(db: Session, client_id: int) -> ClientRead:
-    return _to_read(_get_client_orm(db, client_id))
+    return _to_read(db, _get_client_orm(db, client_id))
 
 
 def create_client(db: Session, data: ClientCreate) -> ClientRead:
@@ -66,7 +59,7 @@ def create_client(db: Session, data: ClientCreate) -> ClientRead:
     client.user_id = f"user_{client.id:03d}"
     db.commit()
     db.refresh(client)
-    return _to_read(client)
+    return _to_read(db, client)
 
 
 def update_client(db: Session, client_id: int, changes: ClientUpdate) -> ClientRead:
@@ -75,7 +68,7 @@ def update_client(db: Session, client_id: int, changes: ClientUpdate) -> ClientR
         setattr(client, field, value)
     db.commit()
     db.refresh(client)
-    return _to_read(client)
+    return _to_read(db, client)
 
 
 def delete_client(db: Session, client_id: int) -> None:
