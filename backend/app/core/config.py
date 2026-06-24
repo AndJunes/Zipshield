@@ -12,6 +12,17 @@ class Settings(BaseSettings):
     jwt_expires_minutes: int = 24 * 60
     cors_origins: str = "http://localhost:4200"
 
+    # --- LLM: análisis automático de claims (OpenRouter, modelo con visión) ---
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemini-2.5-flash-lite"
+    openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
+    guard_salt: str = "mmer-guard-salt-2026"
+    llm_max_tokens: int = 900
+    llm_temperature: float = 0.0
+    llm_request_timeout: int = 120
+    llm_max_retries: int = 4
+    llm_use_json_schema: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

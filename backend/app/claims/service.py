@@ -46,3 +46,34 @@ def update_claim(db: Session, claim_id: int, changes: ClaimUpdate) -> ClaimCase:
     db.commit()
     db.refresh(claim)
     return claim
+
+
+# Campos que el análisis del LLM puede sobrescribir (los 10 que produce el modelo).
+ANALYSIS_FIELDS = frozenset(
+    {
+        "evidence_standard_met",
+        "evidence_standard_met_reason",
+        "risk_flags",
+        "issue_type",
+        "object_part",
+        "claim_status",
+        "claim_status_justification",
+        "supporting_image_ids",
+        "valid_image",
+        "severity",
+    }
+)
+
+
+def apply_analysis(db: Session, claim: ClaimCase, fields: dict) -> ClaimCase:
+    """Persiste en el claim los campos devueltos por el análisis del LLM.
+
+    Solo escribe las columnas de análisis (lista blanca), nunca los datos de entrada
+    (user_id, object, conversation, image_urls).
+    """
+    for field, value in fields.items():
+        if field in ANALYSIS_FIELDS:
+            setattr(claim, field, value)
+    db.commit()
+    db.refresh(claim)
+    return claim
