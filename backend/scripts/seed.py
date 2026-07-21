@@ -20,6 +20,7 @@ from app.supervisors.models import Supervisor
 from scripts.seed_data import AGENTS, SUPERVISORS
 from scripts.seed_clients import CLIENTS
 from scripts.seed_claims import CLAIMS
+from scripts.seed_policies import seed_policies, backfill_claim_policies
 
 
 def slug(value: str) -> str:
@@ -38,6 +39,8 @@ def split_name(full_name: str) -> tuple[str, str]:
 def truncate_all(db):
     # Order matters for FKs
     db.execute(text("DELETE FROM claims"))
+    db.execute(text("DELETE FROM policy_events"))
+    db.execute(text("DELETE FROM coverages"))
     db.execute(text("DELETE FROM policies"))
     db.execute(text("DELETE FROM clients"))
     db.execute(text("DELETE FROM agents"))
@@ -218,6 +221,10 @@ def main():
 
         print(f"Seeding {len(CLAIMS)} claims…")
         seed_claims(db)
+
+        print("Seeding policies…")
+        seed_policies(db)
+        backfill_claim_policies(db)
 
         print("Seeding users (1 admin + 10 supervisors + 12 agents)…")
         seed_users(db)
