@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from app.claims.models import ClaimCase
 from app.clients.history import compute_client_history
 from app.clients.models import Client
+from app.policies.models import Policy
 from app.core.config import get_settings
 from app.llm import guard, prompts, reference, schema
 from app.llm.client import OpenRouterClient
@@ -35,8 +36,25 @@ def analyze_claim(db: Session, claim: ClaimCase, client=None) -> dict:
     client = client or OpenRouterClient()
     history = build_user_history(db, claim.user_id, exclude_id=claim.id)
     requirements = reference.requirements_for(claim.object)
+    coverage_text = _coverage_context(db, claim)
     return _review(claim.object, claim.conversation, list(claim.image_urls or []),
-                   history, requirements, client)
+                   history, requirements, client, coverage_text=coverage_text)
+
+
+def _coverage_context(db: Session, claim: ClaimCase) -> str:
+    """Cobertura de la póliza vigente, para que el LLM decida sabiendo qué cubre realmente."""
+    policy_id = getattr(claim, "policy_id", None)
+    if db is None or policy_id is None:
+        return ""
+    policy = db.get(Policy, policy_id)
+    if policy is None:
+        return ""
+    covs = "; ".join(
+        f"{c.name} (límite ${float(c.limit_amount):.0f}, deducible ${float(c.deductible):.0f})"
+        for c in policy.coverages
+    ) or "(sin coberturas)"
+    return (f"Póliza tipo {policy.type}, estado '{policy.status}', vigencia "
+            f"{policy.effective_date} a {policy.expiration_date}. Coberturas: {covs}.")
 
 
 def build_user_history(db: Session, user_id: str, exclude_id=None) -> dict:
@@ -119,7 +137,8 @@ def _to_db_fields(fields: dict) -> dict:
     }
 
 
-def _review(object_type, conversation, image_urls, history, requirements, client) -> dict:
+def _review(object_type, conversation, image_urls, history, requirements, client,
+            coverage_text=None) -> dict:
     """Núcleo sin BD: testeable pasando un `client` falso (sin red)."""
     provided_ids = [f"img_{i + 1}" for i in range(len(image_urls))]
     guard_result = guard.analyze(conversation or "", None, _context_texts(history, requirements))
@@ -133,7 +152,8 @@ def _review(object_type, conversation, image_urls, history, requirements, client
     claim_dict = {"claim_object": object_type, "user_claim": conversation}
     sys_prompt = prompts.system_prompt(spotlight=True)
     user_prompt = prompts.build_user_prompt(claim_dict, history, requirements,
-                                            provided_ids, spotlight=True)
+                                            provided_ids, spotlight=True,
+                                            coverage_text=coverage_text)
     rf = schema.output_response_format() if get_settings().llm_use_json_schema else None
 
     # Llamada principal: los errores de red/credenciales se PROPAGAN al llamador.
