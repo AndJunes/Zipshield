@@ -5,7 +5,9 @@ from app.agents.models import Agent
 from app.claims.models import ClaimCase
 from app.claims.schemas import ClaimCreate, ClaimUpdate
 from app.clients.models import Client
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
+from app.policies.models import Policy
+from app.policies.service import can_file_claim
 
 
 def list_claims(db: Session, current_user: User) -> list[ClaimCase]:
@@ -32,6 +34,12 @@ def get_claim(db: Session, claim_id: int) -> ClaimCase:
 
 
 def create_claim(db: Session, data: ClaimCreate) -> ClaimCase:
+    if data.policy_id is not None:
+        policy = db.get(Policy, data.policy_id)
+        if not can_file_claim(policy, data.date_of_loss):
+            raise ConflictError(
+                "La póliza no está vigente en la fecha de pérdida; no se puede registrar el reclamo."
+            )
     claim = ClaimCase(**data.model_dump())
     db.add(claim)
     db.commit()

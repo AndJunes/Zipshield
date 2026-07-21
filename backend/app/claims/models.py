@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import String, DateTime, Text, Boolean, JSON
+from sqlalchemy import String, DateTime, Text, Boolean, JSON, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -26,6 +26,11 @@ class ClaimCase(Base):
     supporting_image_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     valid_image: Mapped[bool] = mapped_column(Boolean, default=True)
     severity: Mapped[str] = mapped_column(String(20), default="unknown")
+    # Vínculo con la póliza (Tier 2): un reclamo se evalúa contra una póliza vigente.
+    policy_id: Mapped[int | None] = mapped_column(
+        ForeignKey("policies.id"), index=True, default=None
+    )
+    date_of_loss: Mapped[date | None] = mapped_column(Date, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

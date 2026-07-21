@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
@@ -39,6 +39,8 @@ class ClaimBase(BaseModel):
     supporting_image_ids: list[str] = []
     valid_image: bool = True
     severity: ClaimSeverity = ClaimSeverity.unknown
+    policy_id: int | None = None
+    date_of_loss: date | None = None
 
 
 class ClaimCreate(BaseModel):
@@ -49,6 +51,8 @@ class ClaimCreate(BaseModel):
     object: ClaimObject
     conversation: str
     image_urls: list[str] = []
+    policy_id: int | None = None
+    date_of_loss: date | None = None
 
 
 class ClaimUpdate(BaseModel):
