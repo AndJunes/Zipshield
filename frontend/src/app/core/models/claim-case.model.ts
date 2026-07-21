@@ -23,4 +23,6 @@ export interface ClaimCase {
   supportingImageIds: string[];
   validImage: boolean;
   severity: ClaimSeverity;
+  policyId?: number | null;
+  dateOfLoss?: string | null;
 }

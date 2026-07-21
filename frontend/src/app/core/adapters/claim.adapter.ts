@@ -17,6 +17,8 @@ export interface ApiClaim {
   valid_image: boolean;
   severity: string;
   created_at: string;
+  policy_id: number | null;
+  date_of_loss: string | null;
 }
 
 export type ApiClaimPatch = Partial<{
@@ -59,6 +61,8 @@ export function toClaimCase(api: ApiClaim): ClaimCase {
     supportingImageIds: api.supporting_image_ids ?? [],
     validImage: api.valid_image,
     severity: api.severity as ClaimCase['severity'],
+    policyId: api.policy_id ?? null,
+    dateOfLoss: api.date_of_loss ?? null,
   };
 }
 

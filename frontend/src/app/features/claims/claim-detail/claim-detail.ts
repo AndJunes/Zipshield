@@ -10,15 +10,23 @@ import {
   ClaimObject,
   ClaimSeverity,
   ClientCard,
+  Policy,
 } from '../../../core/models';
 import { ClientsService } from '../../clients/clients.service';
 import { ClaimsService } from '../claims.service';
+import { PoliciesService } from '../../policies/policies.service';
 import {
   formatIssueType,
   formatObjectPart,
   formatRiskFlag,
   formatSeverity,
 } from '../../../shared/utils/claim-labels';
+import {
+  money,
+  policyStatusClass,
+  policyStatusLabel,
+  policyTypeLabel,
+} from '../../../shared/utils/policy-labels';
 
 @Component({
   selector: 'app-claim-detail',
@@ -29,6 +37,7 @@ export class ClaimDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly clientsService = inject(ClientsService);
   private readonly claimsService = inject(ClaimsService);
+  private readonly policiesService = inject(PoliciesService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   private readonly routeId = toSignal(
@@ -37,6 +46,7 @@ export class ClaimDetail {
   );
 
   readonly claim = signal<ClaimCase | null>(null);
+  readonly policy = signal<Policy | null>(null);
   readonly notFound = signal(false);
   readonly clients = signal<ClientCard[]>([]);
   readonly editing = signal(false);
@@ -90,6 +100,12 @@ export class ClaimDetail {
           this.notFound.set(true);
         } else {
           this.claim.set(found);
+          if (found.policyId) {
+            this.policiesService.getById(found.policyId).subscribe({
+              next: (p) => this.policy.set(p),
+              error: () => undefined,
+            });
+          }
         }
       },
       error: () => this.notFound.set(true),
@@ -202,4 +218,8 @@ export class ClaimDetail {
   readonly formatIssueType = formatIssueType;
   readonly formatObjectPart = formatObjectPart;
   readonly formatSeverity = formatSeverity;
+  readonly policyTypeLabel = policyTypeLabel;
+  readonly policyStatusLabel = policyStatusLabel;
+  readonly policyStatusClass = policyStatusClass;
+  readonly money = money;
 }
