@@ -4,14 +4,27 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.policies import service
-from app.policies.schemas import PolicyCreate, PolicyRead, PolicyUpdate
+from app.policies.schemas import (
+    PolicyCreate,
+    PolicyEventRead,
+    PolicyRead,
+    PolicyUpdate,
+    QuoteRequest,
+    QuoteResponse,
+)
 
 router = APIRouter(prefix="/policies", tags=["Policies"])
 
 
 @router.post("", response_model=PolicyRead, status_code=status.HTTP_201_CREATED)
 def create(data: PolicyCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return service.create_policy(db, data)
+    return service.create_policy(db, data, actor_id=current_user.id)
+
+
+@router.post("/quote", response_model=QuoteResponse)
+def quote(data: QuoteRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Cotiza una póliza sin guardarla (devuelve el desglose de la prima)."""
+    return service.quote_policy(db, data.type.value, data.sum_insured, client_id=data.client_id)
 
 
 @router.get("", response_model=list[PolicyRead])
@@ -22,6 +35,16 @@ def list_all(db: Session = Depends(get_db), current_user=Depends(get_current_use
 @router.get("/balance")
 def balance(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     return service.active_policies_balance(db)
+
+
+@router.get("/{policy_id}", response_model=PolicyRead)
+def get_one(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return service.get_policy(db, policy_id)
+
+
+@router.get("/{policy_id}/events", response_model=list[PolicyEventRead])
+def events(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return service.list_policy_events(db, policy_id)
 
 
 @router.patch("/{policy_id}", response_model=PolicyRead)
@@ -36,4 +59,4 @@ def update(
 
 @router.delete("/{policy_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    service.delete_policy(db, policy_id)
+    service.cancel_policy(db, policy_id, actor_id=current_user.id)
