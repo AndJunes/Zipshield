@@ -1,0 +1,78 @@
+<section class="flex flex-col gap-6">
+  <header class="flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold text-color2">Pólizas</h1>
+    <p class="text-sm text-color3">
+      Resumen de las {{ total() }} pólizas administradas por la aseguradora
+    </p>
+  </header>
+
+  <a
+    routerLink="/policies/details"
+    class="inline-flex w-fit items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4"
+  >
+    Ver lista completa de pólizas →
+  </a>
+
+  @if (loading()) {
+    <p class="text-sm text-color3">Cargando…</p>
+  } @else if (error(); as err) {
+    <div class="rounded-md border border-color3/30 bg-white p-4 text-sm text-color2">
+      <p class="font-medium">No se pudieron cargar las pólizas</p>
+      <p class="mt-1 text-color3">{{ err }}</p>
+    </div>
+  } @else {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Resumen</h2>
+      <div class="grid grid-cols-2 gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm md:grid-cols-4">
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Total</span>
+          <span class="text-2xl font-semibold text-color2">{{ total() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Vigentes</span>
+          <span class="text-2xl font-semibold text-color2">{{ inForce() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Vencen pronto</span>
+          <span class="text-2xl font-semibold text-color2">{{ expiringSoon() }}</span>
+        </div>
+        <div class="flex flex-col gap-1 rounded-md bg-color5 p-4">
+          <span class="text-xs uppercase tracking-wide text-color3">Prima vigente</span>
+          <span class="text-2xl font-semibold text-color2">${{ money(premiumInForce()) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <section class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <h2 class="text-sm font-semibold text-color2">Por estado</h2>
+        <ul class="flex flex-col gap-2">
+          @for (row of byStatus(); track row.key) {
+            <li class="flex items-center gap-3">
+              <span class="w-28 shrink-0 text-xs text-color3">{{ statusLabel(row.key) }}</span>
+              <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                <div class="h-full rounded-full bg-color4 transition-[width] duration-500" [style.width.%]="statusBarWidth(row.count)"></div>
+              </div>
+              <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <h2 class="text-sm font-semibold text-color2">Por tipo</h2>
+        <ul class="flex flex-col gap-2">
+          @for (row of byType(); track row.key) {
+            <li class="flex items-center gap-3">
+              <span class="w-28 shrink-0 text-xs text-color3">{{ typeLabel($any(row.key)) }}</span>
+              <div class="flex-1 h-3 overflow-hidden rounded-full bg-color5">
+                <div class="h-full rounded-full bg-color2 transition-[width] duration-500" [style.width.%]="typeBarWidth(row.count)"></div>
+              </div>
+              <span class="w-8 shrink-0 text-right text-sm font-semibold text-color2">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</section>

@@ -1,0 +1,158 @@
+<section class="flex flex-col gap-6">
+  <a
+    routerLink="/policies"
+    class="inline-flex w-fit items-center gap-1 text-sm text-color3 transition-colors hover:text-color2"
+  >
+    ← Resumen
+  </a>
+
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-semibold text-color2">Detalle de pólizas</h1>
+      <p class="text-sm text-color3">Filtrá y entrá a cada póliza para ver coberturas, prima e historial</p>
+    </div>
+    @if (!creating()) {
+      <button
+        type="button"
+        (click)="startCreate()"
+        class="shrink-0 inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90"
+      >
+        + Nueva póliza
+      </button>
+    }
+  </header>
+
+  @if (creating()) {
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold text-color2">Nueva póliza</h2>
+      <form [formGroup]="createForm" (ngSubmit)="saveCreate()" class="flex flex-col gap-4 rounded-lg border border-color3/15 bg-white p-6 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Cliente</span>
+            <select formControlName="clientId" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              @for (c of clients(); track c.id) {
+                <option [ngValue]="c.id">{{ c.firstName }} {{ c.lastName }} ({{ c.clientNumber }})</option>
+              }
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Tipo</span>
+            <select formControlName="type" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none">
+              <option value="car">Auto</option>
+              <option value="laptop">Laptop</option>
+              <option value="package">Paquete</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs uppercase tracking-wide text-color3">Nombre de la póliza</span>
+            <input type="text" formControlName="name" placeholder="Póliza auto · Juan Pérez" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Suma asegurada</span>
+            <input type="number" formControlName="sumInsured" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Deducible</span>
+            <input type="number" formControlName="deductible" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Fecha efectiva</span>
+            <input type="date" formControlName="effectiveDate" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs uppercase tracking-wide text-color3">Vigencia (meses)</span>
+            <input type="number" formControlName="termMonths" class="rounded-md border border-color3/30 bg-white px-3 py-2 text-sm text-color2 focus:border-color4 focus:outline-none" />
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" (click)="doQuote()" [disabled]="quoting()" class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20 hover:border-color4 disabled:opacity-60">
+            @if (quoting()) { Cotizando… } @else { Cotizar }
+          </button>
+          <span class="text-xs text-color3">La prima la calcula el sistema según el riesgo del cliente.</span>
+        </div>
+
+        @if (quote(); as q) {
+          <div class="flex flex-col gap-3 rounded-md border border-color3/15 bg-color5 p-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-medium uppercase tracking-wide text-color3">Cotización</span>
+              <span class="rounded-full bg-white px-2 py-0.5 text-[11px] text-color3">factor de riesgo ×{{ q.riskFactor }}</span>
+            </div>
+            <ul class="flex flex-col gap-1">
+              @for (cov of q.coverages; track cov.code) {
+                <li class="flex items-center justify-between text-xs">
+                  <span class="text-color2">{{ cov.name }} <span class="text-color3">(límite ${{ money(cov.limitAmount) }} · deducible ${{ money(cov.deductible) }})</span></span>
+                  <span class="font-mono text-color2">${{ money(cov.premium) }}</span>
+                </li>
+              }
+            </ul>
+            <dl class="grid grid-cols-3 gap-2 border-t border-color3/20 pt-3 text-sm">
+              <div class="flex flex-col"><dt class="text-xs text-color3">Prima neta</dt><dd class="font-semibold text-color2">${{ money(q.netPremium) }}</dd></div>
+              <div class="flex flex-col"><dt class="text-xs text-color3">Impuestos/fees</dt><dd class="font-semibold text-color2">${{ money(q.taxesFees) }}</dd></div>
+              <div class="flex flex-col"><dt class="text-xs text-color3">Total anual</dt><dd class="font-semibold text-color2">${{ money(q.totalPremium) }}</dd></div>
+            </dl>
+          </div>
+        }
+
+        <div class="flex items-center gap-2">
+          <button type="submit" [disabled]="saving() || createForm.invalid" class="inline-flex items-center gap-2 rounded-md border border-color2 bg-color2 px-4 py-2 text-sm font-medium text-color5 transition-colors hover:bg-color2/90 disabled:opacity-50">
+            @if (saving()) { Creando… } @else { Crear póliza }
+          </button>
+          <button type="button" (click)="cancelCreate()" [disabled]="saving()" class="inline-flex items-center gap-2 rounded-md border border-color3/30 bg-white px-4 py-2 text-sm font-medium text-color2 transition-colors hover:bg-color4/20">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <div class="flex flex-col gap-3 rounded-lg border border-color3/15 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+    <div class="flex flex-col gap-2">
+      <span class="text-xs font-medium uppercase tracking-wide text-color3">Tipo</span>
+      <div class="flex flex-wrap gap-2">
+        @for (f of typeFilters; track f.value) {
+          <button type="button" (click)="setTypeFilter(f.value)" [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(typeFilter() === f.value)">
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+    <div class="flex flex-col gap-2">
+      <span class="text-xs font-medium uppercase tracking-wide text-color3">Estado</span>
+      <div class="flex flex-wrap gap-2">
+        @for (f of statusFilters; track f.value) {
+          <button type="button" (click)="setStatusFilter(f.value)" [class]="'rounded-full border px-3 py-1 text-xs font-medium transition-colors ' + filterChipClass(statusFilter() === f.value)">
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+    <div class="sm:ml-auto text-xs text-color3">
+      <span class="font-semibold text-color2">{{ filtered().length }}</span> de {{ policies().length }} pólizas
+    </div>
+  </div>
+
+  <ul class="flex flex-col gap-2">
+    @for (p of filtered(); track p.id) {
+      <li>
+        <a
+          [routerLink]="['/policies', 'details', p.id]"
+          class="flex flex-wrap items-center gap-3 rounded-lg border border-color3/15 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <span class="text-sm font-semibold text-color2 shrink-0">#{{ p.id.toString().padStart(3, '0') }}</span>
+          <span class="inline-flex items-center rounded-full bg-color5 px-2.5 py-0.5 text-xs font-medium text-color2 shrink-0">{{ typeLabel(p.type) }}</span>
+          <span [class]="'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ' + statusClass(p.status)">{{ statusLabel(p.status) }}</span>
+          <span class="text-xs text-color3 shrink-0">Cliente: <span class="font-semibold text-color2">{{ clientName(p.clientId) }}</span></span>
+          <span class="flex-1"></span>
+          <span class="text-xs text-color3 shrink-0">vence <span class="font-semibold text-color2">{{ p.expirationDate }}</span></span>
+          <span class="text-sm font-semibold text-color2 shrink-0">${{ money(p.price) }}</span>
+          <span class="text-color3 text-lg shrink-0">›</span>
+        </a>
+      </li>
+    } @empty {
+      <li class="rounded-lg border border-dashed border-color3/30 bg-white p-6 text-center text-sm text-color3">
+        No hay pólizas que coincidan con los filtros seleccionados.
+      </li>
+    }
+  </ul>
+</section>

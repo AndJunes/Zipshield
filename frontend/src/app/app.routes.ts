@@ -100,6 +100,25 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'policies',
+        loadComponent: () =>
+          import('./features/policies/policies').then((m) => m.Policies),
+      },
+      {
+        path: 'policies/details',
+        loadComponent: () =>
+          import('./features/policies/policies-details/policies-details').then(
+            (m) => m.PoliciesDetails,
+          ),
+      },
+      {
+        path: 'policies/details/:id',
+        loadComponent: () =>
+          import('./features/policies/policy-detail/policy-detail').then(
+            (m) => m.PolicyDetail,
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile').then((m) => m.Profile),

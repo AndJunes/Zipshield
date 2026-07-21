@@ -25,6 +25,7 @@ export class Sidebar {
     { label: 'Supervisores', route: '/supervisors', roles: ['admin'] },
     { label: 'Agentes', route: '/agents', roles: ['admin', 'supervisor'] },
     { label: 'Clientes', route: '/clients' },
+    { label: 'Pólizas', route: '/policies' },
     { label: 'Reclamos', route: '/claims' },
   ];
 
