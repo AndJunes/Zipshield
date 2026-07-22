@@ -3,15 +3,16 @@ from sqlalchemy.orm import Session
 
 from app.agents.models import Agent
 from app.auth.models import User
+from app.claims.models import ClaimCase
 from app.clients.history import compute_client_history
 from app.clients.models import Client
 from app.clients.schemas import ClientCreate, ClientRead, ClientUpdate
 from app.core.exceptions import ConflictError, NotFoundError
 
 
-def _to_read(db: Session, client: Client) -> ClientRead:
+def _to_read(db: Session, client: Client, claims: list[ClaimCase] | None = None) -> ClientRead:
     data = ClientRead.model_validate(client)
-    data.history = compute_client_history(db, client)
+    data.history = compute_client_history(db, client, claims=claims)
     return data
 
 
@@ -28,7 +29,18 @@ def _filter_by_role(stmt, current_user: User):
 
 def list_clients(db: Session, current_user: User) -> list[ClientRead]:
     stmt = _filter_by_role(select(Client), current_user).order_by(Client.id.asc())
-    return [_to_read(db, c) for c in db.scalars(stmt).all()]
+    clients = list(db.scalars(stmt).all())
+
+    # BUG-14: una sola query para el historial de TODOS los clientes de la página, en
+    # vez de una query por cliente dentro de compute_client_history.
+    claims_by_user: dict[str, list[ClaimCase]] = {}
+    if clients:
+        user_ids = [c.user_id for c in clients]
+        all_claims = db.scalars(select(ClaimCase).where(ClaimCase.user_id.in_(user_ids))).all()
+        for claim in all_claims:
+            claims_by_user.setdefault(claim.user_id, []).append(claim)
+
+    return [_to_read(db, c, claims_by_user.get(c.user_id, [])) for c in clients]
 
 
 def _get_client_orm(db: Session, client_id: int, current_user: User) -> Client:
