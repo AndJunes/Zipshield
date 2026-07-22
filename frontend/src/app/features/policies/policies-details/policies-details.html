@@ -72,6 +72,10 @@
           <span class="text-xs text-color3">La prima la calcula el sistema según el riesgo del cliente.</span>
         </div>
 
+        @if (quoteError(); as err) {
+          <p class="rounded-md border border-color3/30 bg-color5 p-3 text-sm text-color2">{{ err }}</p>
+        }
+
         @if (quote(); as q) {
           <div class="flex flex-col gap-3 rounded-md border border-color3/15 bg-color5 p-4">
             <div class="flex flex-wrap items-center gap-2">
@@ -92,6 +96,10 @@
               <div class="flex flex-col"><dt class="text-xs text-color3">Total anual</dt><dd class="font-semibold text-color2">${{ money(q.totalPremium) }}</dd></div>
             </dl>
           </div>
+        }
+
+        @if (createError(); as err) {
+          <p class="rounded-md border border-color3/30 bg-color5 p-3 text-sm text-color2">{{ err }}</p>
         }
 
         <div class="flex items-center gap-2">
