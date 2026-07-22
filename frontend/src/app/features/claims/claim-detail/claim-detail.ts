@@ -51,9 +51,13 @@ export class ClaimDetail {
   readonly clients = signal<ClientCard[]>([]);
   readonly editing = signal(false);
   readonly saving = signal(false);
+  readonly saveError = signal<string | null>(null);
   readonly analyzing = signal(false);
   readonly analyzeError = signal<string | null>(null);
   readonly analyzedAt = signal<Date | null>(null);
+  // BUG-09: si el análisis de IA resuelve mientras el usuario sigue editando, no se
+  // pisa el resultado en silencio — se guarda aquí y se aplica al cancelar o guardar.
+  readonly pendingAnalysisResult = signal<ClaimCase | null>(null);
   readonly aiModel = 'gemini-2.5-flash-lite';
 
   private readonly securityFlags = new Set([
@@ -136,6 +140,7 @@ export class ClaimDetail {
 
   cancelEdit(): void {
     this.editing.set(false);
+    this.applyPendingAnalysisResult();
   }
 
   save(): void {
@@ -146,14 +151,29 @@ export class ClaimDetail {
     const c = this.claim();
     if (!c) return;
     this.saving.set(true);
+    this.saveError.set(null);
     this.claimsService.update(c.id, this.form.getRawValue()).subscribe({
       next: (updated) => {
         this.claim.set(updated);
         this.editing.set(false);
         this.saving.set(false);
+        // El análisis que haya llegado durante la edición ya se descartó a propósito:
+        // el usuario decidió conservar y guardar su edición manual en su lugar.
+        this.pendingAnalysisResult.set(null);
       },
-      error: () => this.saving.set(false),
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('No se pudo guardar. Intentalo de nuevo.');
+      },
     });
+  }
+
+  private applyPendingAnalysisResult(): void {
+    const pending = this.pendingAnalysisResult();
+    if (pending) {
+      this.claim.set(pending);
+      this.pendingAnalysisResult.set(null);
+    }
   }
 
   analyze(): void {
@@ -163,7 +183,13 @@ export class ClaimDetail {
     this.analyzeError.set(null);
     this.claimsService.analyze(c.id).subscribe({
       next: (updated) => {
-        this.claim.set(updated);
+        if (this.editing()) {
+          // El usuario entró a editar mientras el análisis seguía en curso (BUG-09):
+          // no se pisa el formulario en silencio. Se aplica al cancelar/guardar.
+          this.pendingAnalysisResult.set(updated);
+        } else {
+          this.claim.set(updated);
+        }
         this.analyzedAt.set(new Date());
         this.analyzing.set(false);
       },
