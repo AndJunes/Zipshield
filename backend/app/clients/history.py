@@ -67,16 +67,26 @@ def _summary(past: int, accept: int, manual: int, rejected: int,
     return counts + "."
 
 
-def compute_client_history(db: Session, client: Client, exclude_id: int | None = None) -> ClientHistory:
+def compute_client_history(
+    db: Session, client: Client, exclude_id: int | None = None,
+    claims: list[ClaimCase] | None = None,
+) -> ClientHistory:
     """Historial efectivo del cliente: baseline (columnas sembradas) + derivado de claims.
 
     `exclude_id`: el LLM excluye el claim que está analizando (no debe verse a sí mismo en
     su propio historial); la UI no pasa exclude_id.
+
+    `claims`: si el llamador ya trajo los claims de este cliente (p. ej. un listado que
+    los cargó todos de una vez para evitar N+1 — ver BUG-14), se reutilizan tal cual en
+    vez de volver a consultarlos aquí uno por cliente.
     """
-    query = db.query(ClaimCase).filter(ClaimCase.user_id == client.user_id)
-    if exclude_id is not None:
-        query = query.filter(ClaimCase.id != exclude_id)
-    claims = query.all()
+    if claims is None:
+        query = db.query(ClaimCase).filter(ClaimCase.user_id == client.user_id)
+        if exclude_id is not None:
+            query = query.filter(ClaimCase.id != exclude_id)
+        claims = query.all()
+    elif exclude_id is not None:
+        claims = [c for c in claims if c.id != exclude_id]
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
     d_accept = d_manual = d_rejected = d_last90 = 0
