@@ -15,6 +15,7 @@ class PolicyType(str, Enum):
 class PolicyStatus(str, Enum):
     quote = "quote"               # cotizada, sin cobertura
     underwriting = "underwriting"  # en suscripción
+    pending_info = "pending_info"  # en suscripción, esperando información del asegurado
     in_force = "in_force"         # vigente (canónico para reclamos)
     pending_cancel = "pending_cancel"  # en mora / período de gracia
     cancelled = "cancelled"       # cancelada anticipadamente
