@@ -8,8 +8,21 @@ from app.supervisors.models import Supervisor
 from app.supervisors.schemas import SupervisorCreate, SupervisorRead, SupervisorUpdate
 
 
-def _attach_agent_count(db: Session, supervisor: Supervisor) -> SupervisorRead:
-    count = db.scalar(select(func.count(Agent.id)).where(Agent.supervisor_id == supervisor.id)) or 0
+def _agent_counts_by_supervisor(db: Session, supervisor_ids: list[int]) -> dict[int, int]:
+    if not supervisor_ids:
+        return {}
+    rows = db.execute(
+        select(Agent.supervisor_id, func.count(Agent.id))
+        .where(Agent.supervisor_id.in_(supervisor_ids))
+        .group_by(Agent.supervisor_id)
+    ).all()
+    return {supervisor_id: n for supervisor_id, n in rows}
+
+
+def _attach_agent_count(db: Session, supervisor: Supervisor, agent_count: int | None = None) -> SupervisorRead:
+    count = agent_count if agent_count is not None else (
+        db.scalar(select(func.count(Agent.id)).where(Agent.supervisor_id == supervisor.id)) or 0
+    )
     data = SupervisorRead.model_validate(supervisor)
     data.agent_count = count
     return data
@@ -26,7 +39,8 @@ def _filter_by_role(query, current_user: User):
 def list_supervisors(db: Session, current_user: User) -> list[SupervisorRead]:
     stmt = _filter_by_role(select(Supervisor), current_user)
     supervisors = list(db.scalars(stmt).all())
-    return [_attach_agent_count(db, s) for s in supervisors]
+    agent_counts = _agent_counts_by_supervisor(db, [s.id for s in supervisors])
+    return [_attach_agent_count(db, s, agent_counts.get(s.id, 0)) for s in supervisors]
 
 
 def get_supervisor(db: Session, supervisor_id: int, current_user: User) -> SupervisorRead:
