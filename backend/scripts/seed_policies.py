@@ -75,7 +75,8 @@ def seed_policies(db) -> int:
             net_premium=q["net_premium"],
             taxes_fees=q["taxes_fees"],
             price=q["total_premium"],
-            rating_factors={"base_rate": q["base_rate"], "risk_factor": rf,
+            # `rating_factors` es JSON: Decimal no es serializable ahí (ver BUG-13).
+            rating_factors={"base_rate": float(q["base_rate"]), "risk_factor": rf,
                             "tax_rate": q["tax_rate"], "policy_fee": q["policy_fee"]},
             client_id=client.id,
         )

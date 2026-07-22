@@ -7,7 +7,24 @@ Modelo multiplicativo (estándar en seguros). Devuelve un desglose auditable.
     prima_cobertura = suma_asegurada × tasa × risk_factor × factor_deducible
     net_premium     = max(min_premium, Σ primas_coberturas)
     total           = net_premium + policy_fee + net_premium × tax_rate
+
+Todo el cálculo se hace en `Decimal` (ver BUG-13 en QA_AUDIT_REPORT.md): computar dinero en
+`float` produce errores de redondeo de un centavo en más de la mitad de las combinaciones
+reales de suma asegurada/risk_factor que genera el propio seed de datos.
 """
+
+from decimal import Decimal, ROUND_HALF_UP
+
+_TWO_PLACES = Decimal("0.01")
+_FOUR_PLACES = Decimal("0.0001")
+
+
+def _to_decimal(value) -> Decimal:
+    return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def _q2(value: Decimal) -> Decimal:
+    return value.quantize(_TWO_PLACES, rounding=ROUND_HALF_UP)
 
 # Parámetros por producto (Line of Business). Como el reference.py del LLM: data, no DDL.
 RATE_TABLE = {
@@ -36,40 +53,42 @@ COVERAGE_CATALOG = {
 }
 
 
-def _deductible_factor(deductible: float, sum_insured: float) -> float:
+def _deductible_factor(deductible, sum_insured: Decimal) -> Decimal:
     """Más deducible → prima más barata (el cliente asume más riesgo)."""
     if not sum_insured:
-        return 1.0
-    ratio = float(deductible) / float(sum_insured)
-    return round(1.0 - min(0.30, ratio), 4)
+        return Decimal("1")
+    ratio = _to_decimal(deductible) / sum_insured
+    return (Decimal("1") - min(Decimal("0.30"), ratio)).quantize(_FOUR_PLACES, rounding=ROUND_HALF_UP)
 
 
-def quote(policy_type: str, sum_insured, risk_factor: float = 1.0) -> dict:
+def quote(policy_type: str, sum_insured, risk_factor=Decimal("1.0")) -> dict:
     """Cotiza una póliza. Devuelve un desglose con las coberturas y los montos."""
     cfg = RATE_TABLE.get(policy_type)
     cov_defs = COVERAGE_CATALOG.get(policy_type, [])
     if cfg is None:
         raise ValueError(f"Producto desconocido: {policy_type}")
 
-    si = float(sum_insured)
+    si = _to_decimal(sum_insured)
+    rf = _to_decimal(risk_factor)
     coverages = []
-    net = 0.0
+    net = Decimal("0")
     for c in cov_defs:
+        rate = _to_decimal(c["rate"])
         factor_ded = _deductible_factor(c["deductible"], si)
-        premium = round(si * c["rate"] * risk_factor * factor_ded, 2)
+        premium = _q2(si * rate * rf * factor_ded)
         coverages.append({
             "code": c["code"],
             "name": c["name"],
-            "limit_amount": round(si * c["limit_factor"], 2),
-            "deductible": float(c["deductible"]),
+            "limit_amount": _q2(si * _to_decimal(c["limit_factor"])),
+            "deductible": _to_decimal(c["deductible"]),
             "premium": premium,
         })
         net += premium
 
-    net_premium = round(max(net, cfg["min_premium"]), 2)
-    taxes_fees = round(cfg["policy_fee"] + net_premium * cfg["tax_rate"], 2)
-    total = round(net_premium + taxes_fees, 2)
-    base_rate = round(net_premium / si, 4) if si else 0.0
+    net_premium = _q2(max(net, _to_decimal(cfg["min_premium"])))
+    taxes_fees = _q2(_to_decimal(cfg["policy_fee"]) + net_premium * _to_decimal(cfg["tax_rate"]))
+    total = _q2(net_premium + taxes_fees)
+    base_rate = (net_premium / si).quantize(_FOUR_PLACES, rounding=ROUND_HALF_UP) if si else Decimal("0")
 
     return {
         "coverages": coverages,
@@ -79,5 +98,5 @@ def quote(policy_type: str, sum_insured, risk_factor: float = 1.0) -> dict:
         "base_rate": base_rate,
         "policy_fee": cfg["policy_fee"],
         "tax_rate": cfg["tax_rate"],
-        "risk_factor": risk_factor,
+        "risk_factor": rf,
     }
