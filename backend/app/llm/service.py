@@ -167,6 +167,10 @@ def _review(object_type, conversation, image_urls, history, requirements, client
         except json.JSONDecodeError:
             strict = user_prompt + ("\n\nIMPORTANT: respond with ONLY a valid JSON object, "
                                     "no prose, and escape any inner quotes.")
+            # Este reintento también puede fallar por red/credenciales, no solo por JSON
+            # inválido — ese caso debe propagarse igual que la llamada principal de
+            # arriba, no tratarse como "salida del modelo inválida" (ver el except
+            # RuntimeError explícito más abajo; BUG-16 en QA_AUDIT_REPORT.md).
             parsed = _parse_json(client.chat(sys_prompt, strict, image_urls, response_format=rf))
         fields = schema.validate(parsed, object_type, provided_ids)
         raw_status = fields["claim_status"]
@@ -175,6 +179,9 @@ def _review(object_type, conversation, image_urls, history, requirements, client
             codes.append("OUTPUT_INCOMPLETE")
             fields["risk_flags"] = schema.merge_flags(fields.get("risk_flags", "none"),
                                                       ["manual_review_required"])
+    except RuntimeError:
+        # Errores de red/credenciales del proveedor: se propagan, nunca se degradan.
+        raise
     except Exception as e:   # salida del modelo inválida -> degradación segura
         log.warning("Salida del modelo inválida: %s", e)
         fields = schema.validate({}, object_type, provided_ids)

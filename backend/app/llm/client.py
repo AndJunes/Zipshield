@@ -62,8 +62,17 @@ class OpenRouterClient:
             try:
                 r = httpx.post(self.url, json=payload, headers=headers, timeout=self.timeout)
                 if r.status_code == 200:
-                    data = r.json()
-                    return data["choices"][0]["message"]["content"]
+                    try:
+                        data = r.json()
+                        return data["choices"][0]["message"]["content"]
+                    except (ValueError, KeyError, IndexError, TypeError) as exc:
+                        # 200 con un cuerpo que no tiene la forma esperada (p. ej. un
+                        # payload de moderación sin "choices"): mismo contrato de error
+                        # que un fallo de red, para que el caller siempre reciba 502 y
+                        # nunca un 500 crudo (ver BUG-16 en QA_AUDIT_REPORT.md).
+                        raise RuntimeError(
+                            f"OpenRouter respondió 200 con un cuerpo inesperado: {exc}"
+                        ) from exc
                 # Si el proveedor rechaza response_format, lo quitamos y reintentamos una vez.
                 if r.status_code in (400, 422) and "response_format" in payload and not dropped_rf:
                     payload = {k: v for k, v in payload.items() if k != "response_format"}
