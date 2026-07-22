@@ -29,7 +29,7 @@ def quote(data: QuoteRequest, db: Session = Depends(get_db), current_user=Depend
 
 @router.get("", response_model=list[PolicyRead])
 def list_all(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return service.list_policies(db)
+    return service.list_policies(db, current_user)
 
 
 @router.get("/balance")
@@ -39,12 +39,12 @@ def balance(db: Session = Depends(get_db), current_user=Depends(get_current_user
 
 @router.get("/{policy_id}", response_model=PolicyRead)
 def get_one(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return service.get_policy(db, policy_id)
+    return service.get_policy(db, policy_id, current_user)
 
 
 @router.get("/{policy_id}/events", response_model=list[PolicyEventRead])
 def events(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return service.list_policy_events(db, policy_id)
+    return service.list_policy_events(db, policy_id, current_user)
 
 
 @router.patch("/{policy_id}", response_model=PolicyRead)
@@ -54,9 +54,9 @@ def update(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return service.update_policy(db, policy_id, changes)
+    return service.update_policy(db, policy_id, changes, current_user)
 
 
 @router.delete("/{policy_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(policy_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    service.cancel_policy(db, policy_id, actor_id=current_user.id)
+    service.cancel_policy(db, policy_id, current_user, actor_id=current_user.id)
