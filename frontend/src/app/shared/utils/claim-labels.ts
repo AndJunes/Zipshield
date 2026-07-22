@@ -10,6 +10,11 @@ const RISK_FLAGS: Record<string, string> = {
   low_light_or_glare: 'Poca luz o reflejos',
   non_original_image: 'Imagen no original',
   wrong_object: 'Objeto incorrecto',
+  // A13: faltaban en el mapa (llm/schema.py sí puede devolverlos) y caían al fallback
+  // mecánico en inglés dentro de una UI por lo demás en español.
+  cropped_or_obstructed: 'Recortada u obstruida',
+  wrong_angle: 'Ángulo incorrecto',
+  possible_manipulation: 'Posible manipulación',
 };
 
 const ISSUE_TYPES: Record<string, string> = {
@@ -24,6 +29,7 @@ const ISSUE_TYPES: Record<string, string> = {
   crushed_packaging: 'Embalaje aplastado',
   unknown: 'Desconocido',
   none: 'Ninguno',
+  torn_packaging: 'Embalaje rasgado', // A13
 };
 
 const OBJECT_PARTS: Record<string, string> = {
@@ -46,6 +52,15 @@ const OBJECT_PARTS: Record<string, string> = {
   lid: 'Tapa',
   corner: 'Esquina',
   unknown: 'Desconocida',
+  // A13: faltaban 8 valores que llm/schema.py sí puede devolver por tipo de objeto.
+  taillight: 'Luz trasera', // car
+  fender: 'Guardabarros', // car
+  quarter_panel: 'Panel trasero lateral', // car
+  body: 'Cuerpo/carrocería', // car y laptop comparten esta clave
+  port: 'Puerto', // laptop
+  base: 'Base', // laptop
+  package_side: 'Costado del paquete', // package
+  item: 'Artículo', // package
 };
 
 const SEVERITY: Record<string, string> = {

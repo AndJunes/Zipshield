@@ -15,6 +15,16 @@ interface CountRow {
   count: number;
 }
 
+// A11: sumar `Number(p.price)` de muchas pólizas con `+` reintroduce el error de
+// redondeo binario que el resto del modelo evita a propósito manteniendo el dinero
+// como string. Sumar en centavos enteros evita que el error se acumule.
+function priceToCents(value: string | number): number {
+  const [whole, fraction = ''] = String(value).split('.');
+  const cents = (fraction + '00').slice(0, 2);
+  const sign = whole.trim().startsWith('-') ? -1 : 1;
+  return sign * (Math.abs(Number(whole) || 0) * 100 + Number(cents || 0));
+}
+
 @Component({
   selector: 'app-policies',
   imports: [RouterLink],
@@ -37,11 +47,12 @@ export class Policies {
       (p) => p.status === 'in_force' && new Date(p.expirationDate).getTime() <= limit,
     ).length;
   });
-  readonly premiumInForce = computed(() =>
-    this.policies()
+  readonly premiumInForce = computed(() => {
+    const totalCents = this.policies()
       .filter((p) => p.status === 'in_force')
-      .reduce((s, p) => s + Number(p.price), 0),
-  );
+      .reduce((cents, p) => cents + priceToCents(p.price), 0);
+    return totalCents / 100;
+  });
 
   readonly byStatus = computed(() => this.group(this.policies().map((p) => p.status)));
   readonly byType = computed(() => this.group(this.policies().map((p) => p.type)));
