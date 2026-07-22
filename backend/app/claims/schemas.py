@@ -1,7 +1,13 @@
 from datetime import date, datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+
+def _reject_future_date_of_loss(value: date | None) -> date | None:
+    if value is not None and value > date.today():
+        raise ValueError("date_of_loss no puede ser una fecha futura")
+    return value
 
 
 class ClaimObject(str, Enum):
@@ -54,21 +60,22 @@ class ClaimCreate(BaseModel):
     policy_id: int | None = None
     date_of_loss: date | None = None
 
+    _validate_date_of_loss = field_validator("date_of_loss")(_reject_future_date_of_loss)
+
 
 class ClaimUpdate(BaseModel):
+    """Solo campos de ENTRADA editables manualmente. Los 10 campos de análisis (ver
+    ANALYSIS_FIELDS en claims/service.py) se escriben exclusivamente vía
+    POST /claims/{id}/analyze — nunca a través de este PATCH genérico (ver BUG-02 en
+    QA_AUDIT_REPORT.md)."""
+
     object: ClaimObject | None = None
     conversation: str | None = None
     image_urls: list[str] | None = None
-    evidence_standard_met: bool | None = None
-    evidence_standard_met_reason: str | None = None
-    risk_flags: list[str] | None = None
-    issue_type: str | None = None
-    object_part: str | None = None
-    claim_status: ClaimStatus | None = None
-    claim_status_justification: str | None = None
-    supporting_image_ids: list[str] | None = None
-    valid_image: bool | None = None
-    severity: ClaimSeverity | None = None
+    policy_id: int | None = None
+    date_of_loss: date | None = None
+
+    _validate_date_of_loss = field_validator("date_of_loss")(_reject_future_date_of_loss)
 
 
 class ClaimRead(ClaimBase):

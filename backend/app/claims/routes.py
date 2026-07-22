@@ -25,7 +25,7 @@ def get_one(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.get_claim(db, claim_id)
+    return service.get_claim(db, claim_id, current_user)
 
 
 @router.post("", response_model=ClaimRead, status_code=status.HTTP_201_CREATED)
@@ -44,7 +44,7 @@ def update(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.update_claim(db, claim_id, changes)
+    return service.update_claim(db, claim_id, changes, current_user)
 
 
 @router.post("/{claim_id}/analyze", response_model=ClaimRead)
@@ -58,7 +58,7 @@ def analyze(
     Si el LLM no está disponible (falta la API key o falla la red), responde 502 y el
     reclamo queda intacto.
     """
-    claim = service.get_claim(db, claim_id)
+    claim = service.get_claim(db, claim_id, current_user)
     try:
         fields = llm_service.analyze_claim(db, claim)
     except RuntimeError as exc:

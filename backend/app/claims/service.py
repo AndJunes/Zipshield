@@ -10,24 +10,29 @@ from app.policies.models import Policy
 from app.policies.service import can_file_claim
 
 
-def list_claims(db: Session, current_user: User) -> list[ClaimCase]:
-    query = db.query(ClaimCase)
+def _scope_by_role(query, db: Session, current_user: User):
     if current_user.role == "supervisor" and current_user.ref_id is not None:
         agent_ids_subquery = db.query(Agent.id).filter(Agent.supervisor_id == current_user.ref_id).subquery()
         user_ids_subquery = (
             db.query(Client.user_id).filter(Client.agent_id.in_(agent_ids_subquery)).subquery()
         )
-        query = query.filter(ClaimCase.user_id.in_(user_ids_subquery))
-    elif current_user.role == "agent" and current_user.ref_id is not None:
+        return query.filter(ClaimCase.user_id.in_(user_ids_subquery))
+    if current_user.role == "agent" and current_user.ref_id is not None:
         user_ids_subquery = (
             db.query(Client.user_id).filter(Client.agent_id == current_user.ref_id).subquery()
         )
-        query = query.filter(ClaimCase.user_id.in_(user_ids_subquery))
+        return query.filter(ClaimCase.user_id.in_(user_ids_subquery))
+    return query
+
+
+def list_claims(db: Session, current_user: User) -> list[ClaimCase]:
+    query = _scope_by_role(db.query(ClaimCase), db, current_user)
     return query.order_by(ClaimCase.id.asc()).all()
 
 
-def get_claim(db: Session, claim_id: int) -> ClaimCase:
-    claim = db.query(ClaimCase).filter(ClaimCase.id == claim_id).first()
+def get_claim(db: Session, claim_id: int, current_user: User) -> ClaimCase:
+    query = _scope_by_role(db.query(ClaimCase).filter(ClaimCase.id == claim_id), db, current_user)
+    claim = query.first()
     if not claim:
         raise NotFoundError(f"Reclamo {claim_id} no encontrado")
     return claim
@@ -36,6 +41,10 @@ def get_claim(db: Session, claim_id: int) -> ClaimCase:
 def create_claim(db: Session, data: ClaimCreate) -> ClaimCase:
     if data.policy_id is not None:
         policy = db.get(Policy, data.policy_id)
+        if policy is None:
+            raise NotFoundError(f"Póliza {data.policy_id} no encontrada")
+        if policy.client.user_id != data.user_id:
+            raise ConflictError("La póliza no pertenece al usuario que reporta el reclamo")
         if not can_file_claim(policy, data.date_of_loss):
             raise ConflictError(
                 "La póliza no está vigente en la fecha de pérdida; no se puede registrar el reclamo."
@@ -47,8 +56,8 @@ def create_claim(db: Session, data: ClaimCreate) -> ClaimCase:
     return claim
 
 
-def update_claim(db: Session, claim_id: int, changes: ClaimUpdate) -> ClaimCase:
-    claim = get_claim(db, claim_id)
+def update_claim(db: Session, claim_id: int, changes: ClaimUpdate, current_user: User) -> ClaimCase:
+    claim = get_claim(db, claim_id, current_user)
     for field, value in changes.model_dump(exclude_unset=True).items():
         setattr(claim, field, value)
     db.commit()
