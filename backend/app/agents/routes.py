@@ -24,7 +24,7 @@ def get_one(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.get_agent(db, agent_id)
+    return service.get_agent(db, agent_id, current_user)
 
 
 @router.post(
@@ -37,14 +37,18 @@ def create(data: AgentCreate, db: Session = Depends(get_db)):
     return service.create_agent(db, data)
 
 
-@router.patch("/{agent_id}", response_model=AgentRead)
+@router.patch(
+    "/{agent_id}",
+    response_model=AgentRead,
+    dependencies=[Depends(require_role("admin", "supervisor"))],
+)
 def update(
     agent_id: int,
     changes: AgentUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.update_agent(db, agent_id, changes)
+    return service.update_agent(db, agent_id, changes, current_user)
 
 
 @router.delete(
@@ -52,5 +56,9 @@ def update(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_role("admin", "supervisor"))],
 )
-def delete(agent_id: int, db: Session = Depends(get_db)):
-    service.delete_agent(db, agent_id)
+def delete(
+    agent_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service.delete_agent(db, agent_id, current_user)

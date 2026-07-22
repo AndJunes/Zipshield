@@ -24,7 +24,7 @@ def get_one(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.get_client(db, client_id)
+    return service.get_client(db, client_id, current_user)
 
 
 @router.post("", response_model=ClientRead, status_code=status.HTTP_201_CREATED)
@@ -43,7 +43,7 @@ def update(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.update_client(db, client_id, changes)
+    return service.update_client(db, client_id, changes, current_user)
 
 
 @router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -52,4 +52,4 @@ def delete(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    service.delete_client(db, client_id)
+    service.delete_client(db, client_id, current_user)

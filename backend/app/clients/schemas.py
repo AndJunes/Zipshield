@@ -17,13 +17,15 @@ class ClientCreate(ClientBase):
 
 
 class ClientUpdate(BaseModel):
+    """Reasignar `agent_id` no vive aquí: es una acción administrativa explícita, no un
+    campo más del PATCH genérico (ver BUG-04 en QA_AUDIT_REPORT.md)."""
+
     first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
     city: str | None = None
     status: str | None = None
     photo_url: str | None = None
-    agent_id: int | None = None
 
 
 class ClientHistory(BaseModel):

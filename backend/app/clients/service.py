@@ -31,15 +31,16 @@ def list_clients(db: Session, current_user: User) -> list[ClientRead]:
     return [_to_read(db, c) for c in db.scalars(stmt).all()]
 
 
-def _get_client_orm(db: Session, client_id: int) -> Client:
-    client = db.get(Client, client_id)
+def _get_client_orm(db: Session, client_id: int, current_user: User) -> Client:
+    stmt = _filter_by_role(select(Client).where(Client.id == client_id), current_user)
+    client = db.scalars(stmt).first()
     if client is None:
         raise NotFoundError("Client not found")
     return client
 
 
-def get_client(db: Session, client_id: int) -> ClientRead:
-    return _to_read(db, _get_client_orm(db, client_id))
+def get_client(db: Session, client_id: int, current_user: User) -> ClientRead:
+    return _to_read(db, _get_client_orm(db, client_id, current_user))
 
 
 def create_client(db: Session, data: ClientCreate) -> ClientRead:
@@ -62,8 +63,8 @@ def create_client(db: Session, data: ClientCreate) -> ClientRead:
     return _to_read(db, client)
 
 
-def update_client(db: Session, client_id: int, changes: ClientUpdate) -> ClientRead:
-    client = _get_client_orm(db, client_id)
+def update_client(db: Session, client_id: int, changes: ClientUpdate, current_user: User) -> ClientRead:
+    client = _get_client_orm(db, client_id, current_user)
     for field, value in changes.model_dump(exclude_unset=True).items():
         setattr(client, field, value)
     db.commit()
@@ -71,8 +72,8 @@ def update_client(db: Session, client_id: int, changes: ClientUpdate) -> ClientR
     return _to_read(db, client)
 
 
-def delete_client(db: Session, client_id: int) -> None:
+def delete_client(db: Session, client_id: int, current_user: User) -> None:
     # Soft delete: mark the client as deregistered instead of removing the row.
-    client = _get_client_orm(db, client_id)
+    client = _get_client_orm(db, client_id, current_user)
     client.status = "inactive"
     db.commit()

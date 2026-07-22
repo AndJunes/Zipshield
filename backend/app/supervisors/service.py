@@ -29,8 +29,9 @@ def list_supervisors(db: Session, current_user: User) -> list[SupervisorRead]:
     return [_attach_agent_count(db, s) for s in supervisors]
 
 
-def get_supervisor(db: Session, supervisor_id: int) -> SupervisorRead:
-    supervisor = db.get(Supervisor, supervisor_id)
+def get_supervisor(db: Session, supervisor_id: int, current_user: User) -> SupervisorRead:
+    stmt = _filter_by_role(select(Supervisor).where(Supervisor.id == supervisor_id), current_user)
+    supervisor = db.scalars(stmt).first()
     if supervisor is None:
         raise NotFoundError("Supervisor no encontrado")
     return _attach_agent_count(db, supervisor)
@@ -47,8 +48,11 @@ def create_supervisor(db: Session, data: SupervisorCreate) -> SupervisorRead:
     return _attach_agent_count(db, supervisor)
 
 
-def update_supervisor(db: Session, supervisor_id: int, changes: SupervisorUpdate) -> SupervisorRead:
-    supervisor = db.get(Supervisor, supervisor_id)
+def update_supervisor(
+    db: Session, supervisor_id: int, changes: SupervisorUpdate, current_user: User
+) -> SupervisorRead:
+    stmt = _filter_by_role(select(Supervisor).where(Supervisor.id == supervisor_id), current_user)
+    supervisor = db.scalars(stmt).first()
     if supervisor is None:
         raise NotFoundError("Supervisor no encontrado")
     for field, value in changes.model_dump(exclude_unset=True).items():

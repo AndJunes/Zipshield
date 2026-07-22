@@ -18,13 +18,17 @@ def list_all(
     return service.list_supervisors(db, current_user)
 
 
-@router.get("/{supervisor_id}", response_model=SupervisorRead)
+@router.get(
+    "/{supervisor_id}",
+    response_model=SupervisorRead,
+    dependencies=[Depends(require_role("admin", "supervisor"))],
+)
 def get_one(
     supervisor_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.get_supervisor(db, supervisor_id)
+    return service.get_supervisor(db, supervisor_id, current_user)
 
 
 @router.post(
@@ -46,8 +50,9 @@ def update(
     supervisor_id: int,
     changes: SupervisorUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    return service.update_supervisor(db, supervisor_id, changes)
+    return service.update_supervisor(db, supervisor_id, changes, current_user)
 
 
 @router.delete(

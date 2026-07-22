@@ -65,15 +65,16 @@ def list_agents(db: Session, current_user: User) -> list[AgentRead]:
     return [_to_read(db, agent) for agent in db.scalars(stmt).all()]
 
 
-def _get_agent_orm(db: Session, agent_id: int) -> Agent:
-    agent = db.get(Agent, agent_id)
+def _get_agent_orm(db: Session, agent_id: int, current_user: User) -> Agent:
+    stmt = _filter_by_role(select(Agent).where(Agent.id == agent_id), current_user)
+    agent = db.scalars(stmt).first()
     if agent is None:
         raise NotFoundError("Agent not found")
     return agent
 
 
-def get_agent(db: Session, agent_id: int) -> AgentRead:
-    return _to_read(db, _get_agent_orm(db, agent_id))
+def get_agent(db: Session, agent_id: int, current_user: User) -> AgentRead:
+    return _to_read(db, _get_agent_orm(db, agent_id, current_user))
 
 
 def create_agent(db: Session, data: AgentCreate) -> AgentRead:
@@ -96,8 +97,8 @@ def create_agent(db: Session, data: AgentCreate) -> AgentRead:
     return _to_read(db, agent)
 
 
-def update_agent(db: Session, agent_id: int, changes: AgentUpdate) -> AgentRead:
-    agent = _get_agent_orm(db, agent_id)
+def update_agent(db: Session, agent_id: int, changes: AgentUpdate, current_user: User) -> AgentRead:
+    agent = _get_agent_orm(db, agent_id, current_user)
     for field, value in changes.model_dump(exclude_unset=True).items():
         setattr(agent, field, value)
     db.commit()
@@ -105,8 +106,8 @@ def update_agent(db: Session, agent_id: int, changes: AgentUpdate) -> AgentRead:
     return _to_read(db, agent)
 
 
-def delete_agent(db: Session, agent_id: int) -> None:
+def delete_agent(db: Session, agent_id: int, current_user: User) -> None:
     # Soft delete: mark the agent as deregistered instead of removing the row.
-    agent = _get_agent_orm(db, agent_id)
+    agent = _get_agent_orm(db, agent_id, current_user)
     agent.status = "inactive"
     db.commit()
