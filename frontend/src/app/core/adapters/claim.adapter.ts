@@ -42,6 +42,8 @@ export interface ApiClaimCreate {
   object: 'car' | 'laptop' | 'package';
   conversation: string;
   image_urls: string[];
+  policy_id: number | null;
+  date_of_loss: string | null;
 }
 
 export function toClaimCase(api: ApiClaim): ClaimCase {
@@ -85,12 +87,14 @@ export function fromClaimPartial(partial: Partial<ClaimCase>): ApiClaimPatch {
 }
 
 export function fromClaimCreate(
-  input: Pick<ClaimCase, 'userId' | 'object' | 'conversation' | 'imageUrls'>,
+  input: Pick<ClaimCase, 'userId' | 'object' | 'conversation' | 'imageUrls' | 'policyId' | 'dateOfLoss'>,
 ): ApiClaimCreate {
   return {
     user_id: input.userId,
     object: input.object,
     conversation: input.conversation,
     image_urls: input.imageUrls,
+    policy_id: input.policyId ?? null,
+    date_of_loss: input.dateOfLoss ?? null,
   };
 }

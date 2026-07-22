@@ -13,9 +13,11 @@ import {
   ClaimCaseStatus,
   ClaimObject,
   ClientCard,
+  Policy,
 } from '../../../core/models';
 import { ClientsService } from '../../clients/clients.service';
 import { ClaimsService, ClaimInput } from '../claims.service';
+import { PoliciesService } from '../../policies/policies.service';
 import { formatRiskFlag } from '../../../shared/utils/claim-labels';
 
 type ObjectFilter = ClaimObject | 'all';
@@ -29,10 +31,12 @@ type StatusFilter = ClaimCaseStatus | 'all';
 export class ClaimsDetails {
   private readonly clientsService = inject(ClientsService);
   private readonly claimsService = inject(ClaimsService);
+  private readonly policiesService = inject(PoliciesService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   readonly cases = signal<ClaimCase[]>([]);
   readonly clients = signal<ClientCard[]>([]);
+  readonly policies = signal<Policy[]>([]);
   readonly objectFilter = signal<ObjectFilter>('all');
   readonly statusFilter = signal<StatusFilter>('all');
   readonly creating = signal(false);
@@ -43,6 +47,11 @@ export class ClaimsDetails {
     object: this.fb.control<ClaimObject>('car'),
     conversation: ['', Validators.required],
     imageUrls: this.fb.array<FormControl<string>>([this.fb.control('')]),
+    // BUG-11: sin estos dos campos, todo reclamo creado desde la UI quedaba con
+    // policyId=null para siempre, y nunca aparecía en la pestaña "Reclamos" de la
+    // póliza correspondiente.
+    policyId: this.fb.control<number | null>(null),
+    dateOfLoss: [''],
   });
 
   get imageUrls(): FormArray<FormControl<string>> {
@@ -90,6 +99,10 @@ export class ClaimsDetails {
       next: (data) => this.clients.set(data),
       error: () => undefined,
     });
+    this.policiesService.list().subscribe({
+      next: (data) => this.policies.set(data),
+      error: () => undefined,
+    });
   }
 
   private load(): void {
@@ -101,6 +114,12 @@ export class ClaimsDetails {
 
   clientByUserId(userId: string): ClientCard | undefined {
     return this.clients().find((c) => c.userId === userId);
+  }
+
+  policiesForClient(userId: string): Policy[] {
+    const client = this.clientByUserId(userId);
+    if (!client) return [];
+    return this.policies().filter((p) => p.clientId === client.id);
   }
 
   setObjectFilter(value: ObjectFilter): void {
@@ -116,6 +135,8 @@ export class ClaimsDetails {
       userId: this.clients()[0]?.userId ?? '',
       object: 'car',
       conversation: 'Customer:  | Agent: ',
+      policyId: null,
+      dateOfLoss: '',
     });
     this.imageUrls.clear();
     this.imageUrls.push(this.fb.control(''));
@@ -137,6 +158,8 @@ export class ClaimsDetails {
       object: raw.object,
       conversation: raw.conversation,
       imageUrls: raw.imageUrls.map((u) => u.trim()).filter((u) => u.length > 0),
+      policyId: raw.policyId,
+      dateOfLoss: raw.dateOfLoss ? raw.dateOfLoss : null,
     };
     this.saving.set(true);
     this.claimsService.create(input).subscribe({
