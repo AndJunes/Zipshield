@@ -12,7 +12,7 @@ import {
 } from '../../../core/models';
 import { AgentsService } from '../../agents/agents.service';
 import { ClientsService } from '../clients.service';
-import { MOCK_CLAIM_CASES } from '../../claims/mock-claim-cases';
+import { ClaimsService } from '../../claims/claims.service';
 import {
   formatIssueType,
   formatObjectPart,
@@ -29,6 +29,7 @@ export class ClientDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly clientsService = inject(ClientsService);
   private readonly agentsService = inject(AgentsService);
+  private readonly claimsService = inject(ClaimsService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   private readonly routeId = toSignal(
@@ -38,6 +39,7 @@ export class ClientDetail {
 
   readonly client = signal<ClientCard | null>(null);
   readonly agents = signal<AgentCard[]>([]);
+  readonly claims = signal<ClaimCase[]>([]);
   readonly loading = signal(true);
   readonly notFound = signal(false);
   readonly editing = signal(false);
@@ -64,7 +66,7 @@ export class ClientDetail {
   readonly clientClaims = computed<ClaimCase[]>(() => {
     const c = this.client();
     if (!c) return [];
-    return MOCK_CLAIM_CASES.filter((claim) => claim.userId === c.userId);
+    return this.claims().filter((claim) => claim.userId === c.userId);
   });
 
   constructor() {
@@ -86,6 +88,10 @@ export class ClientDetail {
 
     this.agentsService.list().subscribe({
       next: (data) => this.agents.set(data),
+      error: () => undefined,
+    });
+    this.claimsService.list().subscribe({
+      next: (data) => this.claims.set(data),
       error: () => undefined,
     });
   }

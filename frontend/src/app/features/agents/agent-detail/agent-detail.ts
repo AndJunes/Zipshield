@@ -15,7 +15,7 @@ import {
 import { AgentsService } from '../agents.service';
 import { ClientsService } from '../../clients/clients.service';
 import { SupervisorsService } from '../../supervisors/supervisors.service';
-import { MOCK_CLAIM_CASES } from '../../claims/mock-claim-cases';
+import { ClaimsService } from '../../claims/claims.service';
 
 @Component({
   selector: 'app-agent-detail',
@@ -27,6 +27,7 @@ export class AgentDetail {
   private readonly agentsService = inject(AgentsService);
   private readonly clientsService = inject(ClientsService);
   private readonly supervisorsService = inject(SupervisorsService);
+  private readonly claimsService = inject(ClaimsService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   private readonly routeId = toSignal(
@@ -37,6 +38,7 @@ export class AgentDetail {
   readonly agent = signal<AgentCard | null>(null);
   readonly clients = signal<ClientCard[]>([]);
   readonly supervisors = signal<SupervisorCard[]>([]);
+  readonly claims = signal<ClaimCase[]>([]);
   readonly loading = signal(true);
   readonly notFound = signal(false);
   readonly editing = signal(false);
@@ -61,7 +63,7 @@ export class AgentDetail {
 
   readonly assignedClaims = computed<ClaimCase[]>(() => {
     const userIds = new Set(this.assignedClients().map((c) => c.userId));
-    return MOCK_CLAIM_CASES.filter((c) => userIds.has(c.userId));
+    return this.claims().filter((c) => userIds.has(c.userId));
   });
 
   readonly supervisor = computed(() => {
@@ -106,6 +108,10 @@ export class AgentDetail {
     });
     this.supervisorsService.list().subscribe({
       next: (data) => this.supervisors.set(data),
+      error: () => undefined,
+    });
+    this.claimsService.list().subscribe({
+      next: (data) => this.claims.set(data),
       error: () => undefined,
     });
   }

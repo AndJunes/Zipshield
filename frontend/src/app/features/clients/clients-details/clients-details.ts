@@ -5,7 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AgentCard, ClientCard } from '../../../core/models';
 import { AgentsService } from '../../agents/agents.service';
 import { ClientsService } from '../clients.service';
-import { MOCK_CLAIM_CASES } from '../../claims/mock-claim-cases';
+import { ClaimsService } from '../../claims/claims.service';
 
 type StatusFilter = 'all' | 'active' | 'inactive' | 'risk';
 type ClaimsFilter = 'all' | 'with' | 'without';
@@ -18,11 +18,12 @@ type ClaimsFilter = 'all' | 'with' | 'without';
 export class ClientsDetails {
   private readonly clientsService = inject(ClientsService);
   private readonly agentsService = inject(AgentsService);
+  private readonly claimsService = inject(ClaimsService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  private readonly userIdsWithClaims = new Set(
-    MOCK_CLAIM_CASES.map((c) => c.userId),
-  );
+  // BUG-10: antes se calculaba una sola vez a partir de datos mock; ahora se llena con
+  // los reclamos reales del backend, así que sí refleja reclamos creados/analizados.
+  private readonly userIdsWithClaims = signal<Set<string>>(new Set());
 
   readonly clients = signal<ClientCard[]>([]);
   readonly agents = signal<AgentCard[]>([]);
@@ -55,8 +56,8 @@ export class ClientsDetails {
       if (status === 'inactive' && c.status !== 'inactive') return false;
       if (status === 'risk' && c.history.historyFlags.length === 0) return false;
 
-      if (claims === 'with' && !this.userIdsWithClaims.has(c.userId)) return false;
-      if (claims === 'without' && this.userIdsWithClaims.has(c.userId)) return false;
+      if (claims === 'with' && !this.userIdsWithClaims().has(c.userId)) return false;
+      if (claims === 'without' && this.userIdsWithClaims().has(c.userId)) return false;
 
       return true;
     });
@@ -81,6 +82,10 @@ export class ClientsDetails {
       next: (data) => this.agents.set(data),
       error: () => undefined,
     });
+    this.claimsService.list().subscribe({
+      next: (data) => this.userIdsWithClaims.set(new Set(data.map((c) => c.userId))),
+      error: () => undefined,
+    });
   }
 
   private load(): void {
@@ -101,7 +106,7 @@ export class ClientsDetails {
   }
 
   hasClaims(userId: string): boolean {
-    return this.userIdsWithClaims.has(userId);
+    return this.userIdsWithClaims().has(userId);
   }
 
   setStatusFilter(value: StatusFilter): void {
