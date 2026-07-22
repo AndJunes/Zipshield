@@ -45,10 +45,51 @@ def _claims_for_agent(db: Session, agent_id: int) -> AgentClaims:
     )
 
 
-def _to_read(db: Session, agent: Agent) -> AgentRead:
+def _client_counts_by_agent(db: Session, agent_ids: list[int]) -> dict[int, int]:
+    if not agent_ids:
+        return {}
+    rows = db.execute(
+        select(Client.agent_id, func.count(Client.id))
+        .where(Client.agent_id.in_(agent_ids))
+        .group_by(Client.agent_id)
+    ).all()
+    return {agent_id: n for agent_id, n in rows}
+
+
+def _claims_by_agent(db: Session, agent_ids: list[int]) -> dict[int, AgentClaims]:
+    """Misma agregación que `_claims_for_agent`, pero para varios agentes a la vez en una
+    sola query (ver BUG-14) en vez de una por agente."""
+    result = {agent_id: AgentClaims() for agent_id in agent_ids}
+    if not agent_ids:
+        return result
+    rows = db.execute(
+        select(Client.agent_id, ClaimCase.claim_status, func.count())
+        .select_from(ClaimCase)
+        .join(Client, Client.user_id == ClaimCase.user_id)
+        .where(Client.agent_id.in_(agent_ids))
+        .group_by(Client.agent_id, ClaimCase.claim_status)
+    ).all()
+    counts_by_agent: dict[int, dict[str, int]] = {}
+    for agent_id, status, n in rows:
+        counts_by_agent.setdefault(agent_id, {})[status] = n
+    for agent_id, counts in counts_by_agent.items():
+        granted = counts.get("supported", 0)
+        rejected = counts.get("contradicted", 0)
+        in_progress = counts.get("not_enough_information", 0)
+        result[agent_id] = AgentClaims(
+            resolved=granted + rejected, in_progress=in_progress,
+            granted=granted, rejected=rejected,
+        )
+    return result
+
+
+def _to_read(
+    db: Session, agent: Agent,
+    client_count: int | None = None, claims: AgentClaims | None = None,
+) -> AgentRead:
     data = AgentRead.model_validate(agent)
-    data.client_count = _client_count(db, agent.id)
-    data.claims = _claims_for_agent(db, agent.id)
+    data.client_count = client_count if client_count is not None else _client_count(db, agent.id)
+    data.claims = claims if claims is not None else _claims_for_agent(db, agent.id)
     return data
 
 
@@ -62,7 +103,14 @@ def _filter_by_role(stmt, current_user: User):
 
 def list_agents(db: Session, current_user: User) -> list[AgentRead]:
     stmt = _filter_by_role(select(Agent), current_user).order_by(Agent.id.asc())
-    return [_to_read(db, agent) for agent in db.scalars(stmt).all()]
+    agents = list(db.scalars(stmt).all())
+    agent_ids = [a.id for a in agents]
+    client_counts = _client_counts_by_agent(db, agent_ids)
+    claims_by_agent = _claims_by_agent(db, agent_ids)
+    return [
+        _to_read(db, agent, client_counts.get(agent.id, 0), claims_by_agent.get(agent.id))
+        for agent in agents
+    ]
 
 
 def _get_agent_orm(db: Session, agent_id: int, current_user: User) -> Agent:
