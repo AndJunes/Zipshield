@@ -1,21 +1,25 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import jwt
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import get_settings
 
 settings = get_settings()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Argon2 for every new hash; bcrypt stays only to verify pre-existing accounts.
+password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    return password_hash.hash(plain)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return password_hash.verify(plain, hashed)
 
 
 def create_access_token(subject: int, role: str, ref_id: int | None) -> tuple[str, datetime]:
@@ -33,5 +37,5 @@ def create_access_token(subject: int, role: str, ref_id: int | None) -> tuple[st
 def decode_token(token: str) -> dict[str, Any]:
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
+    except jwt.InvalidTokenError as exc:
         raise ValueError("Invalid token") from exc

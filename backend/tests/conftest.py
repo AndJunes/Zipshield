@@ -17,7 +17,7 @@ import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
-os.environ.setdefault("JWT_SECRET", "test-only-secret-not-for-prod")
+os.environ.setdefault("JWT_SECRET", "test-only-secret-not-for-prod-0123456789")
 os.environ.setdefault("ENVIRONMENT", "test")
 
 _db_fd, _db_path = tempfile.mkstemp(suffix=".db")
