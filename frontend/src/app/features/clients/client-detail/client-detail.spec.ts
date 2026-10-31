@@ -56,8 +56,8 @@ function fakeClaim(userId: string): ClaimCase {
   };
 }
 
-describe('ClientDetail — BUG-10: reclamos reales, no mock', () => {
-  it('deriva clientClaims de ClaimsService.list(), no de datos hardcodeados', async () => {
+describe('ClientDetail — real claims, not mock data', () => {
+  it('derives clientClaims from ClaimsService.list(), not hardcoded data', async () => {
     const realClaim = fakeClaim('user_001');
 
     await TestBed.configureTestingModule({
@@ -79,7 +79,7 @@ describe('ClientDetail — BUG-10: reclamos reales, no mock', () => {
     expect(fixture.componentInstance.clientClaims()).toEqual([realClaim]);
   });
 
-  it('no muestra reclamos de otro usuario que casualmente esté en el mock antiguo', async () => {
+  it('does not show another user\'s claims', async () => {
     const claimOfSomeoneElse = fakeClaim('user_999');
 
     await TestBed.configureTestingModule({

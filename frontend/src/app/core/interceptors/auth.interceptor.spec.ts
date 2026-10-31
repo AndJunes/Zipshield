@@ -9,7 +9,7 @@ import { API_BASE_URL } from '../services/api-config';
 
 const FAKE_API_BASE_URL = 'http://api.test';
 
-describe('authInterceptor — BUG-12: returnUrl sobrevive a un login fallido', () => {
+describe('authInterceptor — returnUrl survives a failed login', () => {
   function runInterceptor(url: string, authMock: Partial<AuthService>) {
     TestBed.configureTestingModule({
       providers: [
@@ -23,7 +23,7 @@ describe('authInterceptor — BUG-12: returnUrl sobrevive a un login fallido', (
     );
   }
 
-  it('NO llama a logout() cuando el 401 viene de la propia petición de login', async () => {
+  it('does NOT call logout() when the 401 comes from the login request itself', async () => {
     const logout = vi.fn();
     const authMock: Partial<AuthService> = { token: signal(null), logout };
 
@@ -34,7 +34,7 @@ describe('authInterceptor — BUG-12: returnUrl sobrevive a un login fallido', (
     expect(logout).not.toHaveBeenCalled();
   });
 
-  it('SÍ llama a logout() cuando el 401 viene de una ruta protegida cualquiera', async () => {
+  it('DOES call logout() when the 401 comes from any protected route', async () => {
     const logout = vi.fn();
     const authMock: Partial<AuthService> = { token: signal(null), logout };
 
@@ -46,7 +46,7 @@ describe('authInterceptor — BUG-12: returnUrl sobrevive a un login fallido', (
   });
 });
 
-describe('authInterceptor — A7: el token solo viaja hacia nuestra propia API', () => {
+describe('authInterceptor — the token only travels to our own API', () => {
   function runAndCaptureRequest(url: string, token: string | null) {
     TestBed.configureTestingModule({
       providers: [
@@ -64,12 +64,12 @@ describe('authInterceptor — A7: el token solo viaja hacia nuestra propia API',
     ).toPromise().then(() => seenRequest);
   }
 
-  it('adjunta el header Authorization en una petición al propio backend', async () => {
+  it('attaches the Authorization header on a request to our own backend', async () => {
     const seen = await runAndCaptureRequest(`${FAKE_API_BASE_URL}/claims`, 'tok-123');
     expect(seen?.headers.get('Authorization')).toBe('Bearer tok-123');
   });
 
-  it('NO adjunta el header Authorization en una petición a un host de terceros', async () => {
+  it('does NOT attach the Authorization header on a request to a third-party host', async () => {
     const seen = await runAndCaptureRequest('https://cdn.example.com/image.png', 'tok-123');
     expect(seen?.headers.get('Authorization')).toBeNull();
   });

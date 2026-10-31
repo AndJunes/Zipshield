@@ -10,9 +10,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const baseUrl = inject(API_BASE_URL);
   const token = auth.token();
 
-  // A7: el token solo viaja hacia nuestro propio backend. Sin este chequeo, cualquier
-  // petición futura a un tercero (CDN, proxy de imágenes, el LLM directamente) se
-  // llevaría la sesión del usuario sin que nadie lo haya decidido explícitamente.
+  // The token only travels to our own backend. Without this check, any future
+  // request to a third party (CDN, image proxy, the LLM directly) would carry the
+  // user's session without anyone having explicitly decided that.
   const isOwnApi = req.url.startsWith(baseUrl);
 
   const authed = token && isOwnApi
@@ -21,9 +21,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       })
     : req;
 
-  // BUG-12: un 401 en la propia petición de login es una respuesta de negocio normal
-  // (credenciales incorrectas), no una sesión que expiró — no debe disparar logout()
-  // (que navega a /login sin el `returnUrl`, perdiendo la redirección original).
+  // A 401 on the login request itself is a normal business response (wrong
+  // credentials), not an expired session — it must not trigger logout() (which
+  // navigates to /login without the `returnUrl`, losing the original redirect).
   const isLoginRequest = req.url.endsWith('/auth/login');
 
   return next(authed).pipe(

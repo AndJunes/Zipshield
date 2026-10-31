@@ -56,8 +56,8 @@ function fakePolicy(overrides: Partial<Policy> = {}): Policy {
   };
 }
 
-describe('ClaimsDetails — BUG-11: vínculo reclamo↔póliza expuesto en el formulario', () => {
-  it('policiesForClient filtra solo las pólizas del cliente seleccionado', async () => {
+describe('ClaimsDetails — claim↔policy link exposed in the form', () => {
+  it('policiesForClient filters only the selected client\'s policies', async () => {
     const clientA = fakeClient({ id: 1, userId: 'user_001' });
     const clientB = fakeClient({ id: 2, userId: 'user_002', clientNumber: 'CL-002' });
     const policyOfA = fakePolicy({ id: 10, clientId: 1 });
@@ -80,7 +80,7 @@ describe('ClaimsDetails — BUG-11: vínculo reclamo↔póliza expuesto en el fo
     expect(fixture.componentInstance.policiesForClient('user_002')).toEqual([policyOfB]);
   });
 
-  it('saveCreate envía policyId y dateOfLoss al servicio de reclamos', async () => {
+  it('saveCreate sends policyId and dateOfLoss to the claims service', async () => {
     let captured: ClaimInput | undefined;
 
     await TestBed.configureTestingModule({

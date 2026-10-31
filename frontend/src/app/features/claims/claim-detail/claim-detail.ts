@@ -55,8 +55,8 @@ export class ClaimDetail {
   readonly analyzing = signal(false);
   readonly analyzeError = signal<string | null>(null);
   readonly analyzedAt = signal<Date | null>(null);
-  // BUG-09: si el análisis de IA resuelve mientras el usuario sigue editando, no se
-  // pisa el resultado en silencio — se guarda aquí y se aplica al cancelar o guardar.
+  // If the analysis resolves while the user is still editing, the result is not
+  // silently overwritten — it is stored here and applied on cancel or save.
   readonly pendingAnalysisResult = signal<ClaimCase | null>(null);
   readonly aiModel = 'gemini-2.5-flash-lite';
 
@@ -157,8 +157,8 @@ export class ClaimDetail {
         this.claim.set(updated);
         this.editing.set(false);
         this.saving.set(false);
-        // El análisis que haya llegado durante la edición ya se descartó a propósito:
-        // el usuario decidió conservar y guardar su edición manual en su lugar.
+        // Any analysis that arrived during the edit is discarded on purpose:
+        // the user chose to keep and save their manual edit instead.
         this.pendingAnalysisResult.set(null);
       },
       error: () => {
@@ -184,8 +184,8 @@ export class ClaimDetail {
     this.claimsService.analyze(c.id).subscribe({
       next: (updated) => {
         if (this.editing()) {
-          // El usuario entró a editar mientras el análisis seguía en curso (BUG-09):
-          // no se pisa el formulario en silencio. Se aplica al cancelar/guardar.
+          // The user started editing while the analysis was still running: do not
+          // silently overwrite the form. Applied on cancel/save.
           this.pendingAnalysisResult.set(updated);
         } else {
           this.claim.set(updated);

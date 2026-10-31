@@ -31,7 +31,7 @@ export interface Policy {
   deductible: string;
   netPremium: string;
   taxesFees: string;
-  price: string; // prima total
+  price: string; // total premium
   coverage: string | null;
   coverages: Coverage[];
 }

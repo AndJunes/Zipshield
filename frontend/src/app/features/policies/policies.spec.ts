@@ -28,10 +28,10 @@ function fakePolicy(price: string, overrides: Partial<Policy> = {}): Policy {
   };
 }
 
-describe('Policies — A11: suma de primas sin deriva de punto flotante', () => {
-  it('suma exactamente 10 primas de $0.10 sin error de redondeo binario', async () => {
-    // Sumar 0.10 diez veces con `+` nativo de JS da 0.9999999999999999, no 1 —
-    // exactamente el tipo de error que priceToCents (vía centavos enteros) evita.
+describe('Policies — premium sum without floating-point drift', () => {
+  it('sums exactly 10 premiums of $0.10 with no binary rounding error', async () => {
+    // Adding 0.10 ten times with JS's native `+` gives 0.9999999999999999, not 1 —
+    // exactly the kind of error priceToCents (via integer cents) avoids.
     const policies = Array.from({ length: 10 }, () => fakePolicy('0.10'));
 
     await TestBed.configureTestingModule({
@@ -48,7 +48,7 @@ describe('Policies — A11: suma de primas sin deriva de punto flotante', () => 
     expect(fixture.componentInstance.premiumInForce()).toBe(1);
   });
 
-  it('excluye del total las pólizas que no están in_force', async () => {
+  it('excludes policies that are not in_force from the total', async () => {
     const policies = [fakePolicy('100.00', { status: 'in_force' }), fakePolicy('50.00', { status: 'cancelled' })];
 
     await TestBed.configureTestingModule({
