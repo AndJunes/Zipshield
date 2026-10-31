@@ -1,6 +1,8 @@
 # Zipshield
 
+[![CI](https://github.com/AndJunes/Zipshield/actions/workflows/ci.yml/badge.svg)](https://github.com/AndJunes/Zipshield/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/AndJunes/Zipshield)](LICENSE)
+![Coverage](https://img.shields.io/badge/backend_coverage-83%25-brightgreen)
 
 An insurance claims platform with automatic AI review and role based access control enforced on the server, not just hidden in the UI.
 
