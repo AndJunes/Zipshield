@@ -1,24 +1,57 @@
-"""Regression tests: the default JWT_SECRET must be rejected in production, and the CORS
+"""Regression tests: development defaults must be rejected in production, and the CORS
 origins defined in config.py must actually be wired into main.py."""
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.config import Settings
 
+_PROD_OVERRIDES = dict(
+    environment="production",
+    jwt_secret="a-real-production-secret-of-32-bytes-or-more",
+    guard_salt="a-real-production-salt",
+    database_url="postgresql+psycopg2://app:real-password@db.internal:5432/zipshield",
+)
 
-def test_settings_rejects_default_secret_in_production():
+
+def _prod_settings(**overrides) -> Settings:
+    return Settings(**{**_PROD_OVERRIDES, **overrides})
+
+
+def test_production_accepts_real_secrets():
+    assert _prod_settings().environment == "production"
+
+
+def test_production_rejects_the_default_jwt_secret():
     with pytest.raises(RuntimeError):
-        Settings(environment="production", jwt_secret="change-me-in-prod")
+        _prod_settings(jwt_secret="change-me-in-prod")
 
 
-def test_settings_allows_default_secret_outside_production():
+def test_production_rejects_a_short_jwt_secret():
+    with pytest.raises(RuntimeError):
+        _prod_settings(jwt_secret="too-short")
+
+
+def test_production_rejects_the_default_guard_salt():
+    with pytest.raises(RuntimeError):
+        _prod_settings(guard_salt="mmer-guard-salt-2026")
+
+
+def test_production_rejects_the_default_database_url():
+    with pytest.raises(RuntimeError):
+        _prod_settings(
+            database_url="postgresql+psycopg2://zipshield:zipshield@localhost:5432/zipshield"
+        )
+
+
+def test_environment_only_accepts_known_values():
+    with pytest.raises(ValidationError):
+        Settings(environment="staging")
+
+
+def test_development_allows_the_defaults():
     settings = Settings(environment="development", jwt_secret="change-me-in-prod")
     assert settings.jwt_secret == "change-me-in-prod"
-
-
-def test_settings_allows_custom_secret_in_production():
-    settings = Settings(environment="production", jwt_secret="a-real-production-secret")
-    assert settings.environment == "production"
 
 
 def test_cors_origin_list_parses_comma_separated_origins():

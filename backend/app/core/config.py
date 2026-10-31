@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -6,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    environment: str = "development"
+    environment: Literal["development", "test", "production"] = "development"
     database_url: str = "postgresql+psycopg2://zipshield:zipshield@localhost:5432/zipshield"
     jwt_secret: str = "change-me-in-prod"
     jwt_algorithm: str = "HS256"
@@ -29,13 +30,23 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def model_post_init(self, __context) -> None:
-        # The JWT_SECRET placeholder must never reach production unnoticed —
-        # fail fast instead of signing tokens with a public secret.
-        if self.environment == "production" and self.jwt_secret == "change-me-in-prod":
-            raise RuntimeError(
-                "JWT_SECRET is still set to its default value in a production environment. "
-                "Set a real secret (JWT_SECRET environment variable) before starting."
+        # Fail fast on anything that must never reach production: the defaults are
+        # public (they live in this repo), so a token signed or a guard salted with
+        # them protects nothing.
+        if self.environment != "production":
+            return
+        defaults = {name: field.default for name, field in type(self).model_fields.items()}
+        problems = [
+            f"{name.upper()} is still its development default"
+            for name in ("jwt_secret", "guard_salt", "database_url")
+            if getattr(self, name) == defaults[name]
+        ]
+        if len(self.jwt_secret.encode()) < 32:
+            problems.append(
+                "JWT_SECRET is shorter than the 32 bytes RFC 7518 requires for HS256"
             )
+        if problems:
+            raise RuntimeError("Refusing to start in production: " + "; ".join(problems))
 
 
 @lru_cache
