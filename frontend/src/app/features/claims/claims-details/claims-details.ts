@@ -47,9 +47,8 @@ export class ClaimsDetails {
     object: this.fb.control<ClaimObject>('car'),
     conversation: ['', Validators.required],
     imageUrls: this.fb.array<FormControl<string>>([this.fb.control('')]),
-    // BUG-11: sin estos dos campos, todo reclamo creado desde la UI quedaba con
-    // policyId=null para siempre, y nunca aparecía en la pestaña "Reclamos" de la
-    // póliza correspondiente.
+    // Without these two fields, every claim created from the UI kept policyId=null
+    // forever and never showed up in the corresponding policy's "Reclamos" tab.
     policyId: this.fb.control<number | null>(null),
     dateOfLoss: [''],
   });

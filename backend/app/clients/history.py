@@ -1,18 +1,18 @@
-"""Cálculo del historial del cliente — fuente de verdad ÚNICA (UI + LLM).
+"""Client history computation — the SINGLE source of truth (UI + LLM).
 
-El historial mostrado se DERIVA al leer (no se guarda), así nunca se desincroniza:
-crear o analizar un claim ya cambia lo que devuelve el próximo GET.
+The displayed history is DERIVED on read (never stored), so it can never drift:
+creating or analyzing a claim already changes what the next GET returns.
 
-    historial = baseline sembrado (columnas del Client, congeladas) + derivado de los claims
+    history = seeded baseline (frozen Client columns) + derived from the claims
 
-Decisiones de producto:
-- Aditivo: current = baseline + claims reales del sistema.
-- Un claim SIN analizar (justificación vacía = recién creado) cuenta solo en past_claim_count
-  (y en los últimos 90 días si es reciente), NO en los buckets de resultado.
-- last_90_days_claim_count se deriva 100% de created_at (ventana móvil; el baseline
-  congelado no aplica).
-- Bucket: manual_review_required gana siempre; si no, supported->aceptado,
-  contradicted->rechazado, not_enough_information->revisión manual.
+Product decisions:
+- Additive: current = baseline + the system's real claims.
+- An UNANALYZED claim (empty justification = just created) only counts in past_claim_count
+  (and in the last 90 days if recent), NOT in the outcome buckets.
+- last_90_days_claim_count is derived 100% from created_at (rolling window; the frozen
+  baseline does not apply).
+- Bucket: manual_review_required always wins; otherwise supported->accepted,
+  contradicted->rejected, not_enough_information->manual review.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -28,18 +28,18 @@ def _recent(claim: ClaimCase, cutoff: datetime) -> bool:
     ts = claim.created_at
     if ts is None:
         return False
-    if ts.tzinfo is None:                      # tolera timestamps naive (p. ej. SQLite)
+    if ts.tzinfo is None:                      # tolerate naive timestamps (e.g. SQLite)
         ts = ts.replace(tzinfo=timezone.utc)
     return ts >= cutoff
 
 
 def _is_analyzed(claim: ClaimCase) -> bool:
-    """Un claim se considera analizado por IA si tiene justificación (vacía = recién creado)."""
+    """A claim counts as analyzed if it has a justification (empty = just created)."""
     return bool((claim.claim_status_justification or "").strip())
 
 
 def _bucket(claim: ClaimCase) -> str:
-    """Clasifica un claim ANALIZADO en un bucket de resultado."""
+    """Classify an ANALYZED claim into an outcome bucket."""
     if "manual_review_required" in (claim.risk_flags or []):
         return "manual_review"
     if claim.claim_status == "supported":
@@ -71,14 +71,14 @@ def compute_client_history(
     db: Session, client: Client, exclude_id: int | None = None,
     claims: list[ClaimCase] | None = None,
 ) -> ClientHistory:
-    """Historial efectivo del cliente: baseline (columnas sembradas) + derivado de claims.
+    """Effective client history: baseline (seeded columns) + derived from claims.
 
-    `exclude_id`: el LLM excluye el claim que está analizando (no debe verse a sí mismo en
-    su propio historial); la UI no pasa exclude_id.
+    `exclude_id`: the LLM excludes the claim it is analyzing (it must not see itself in
+    its own history); the UI does not pass exclude_id.
 
-    `claims`: si el llamador ya trajo los claims de este cliente (p. ej. un listado que
-    los cargó todos de una vez para evitar N+1 — ver BUG-14), se reutilizan tal cual en
-    vez de volver a consultarlos aquí uno por cliente.
+    `claims`: if the caller already fetched this client's claims (e.g. a listing that
+    loaded them all at once to avoid N+1), they are reused as-is instead of being
+    re-queried here per client.
     """
     if claims is None:
         query = db.query(ClaimCase).filter(ClaimCase.user_id == client.user_id)
@@ -109,7 +109,7 @@ def compute_client_history(
     accept = (client.accept_claim or 0) + d_accept
     manual = (client.manual_review_claim or 0) + d_manual
     rejected = (client.rejected_claim or 0) + d_rejected
-    last90 = d_last90   # ventana móvil: solo derivado, sin baseline
+    last90 = d_last90   # rolling window: derived only, no baseline
 
     flags = [f for f in (client.history_flags or []) if f != "none"]
     for f in sorted(derived_flags):

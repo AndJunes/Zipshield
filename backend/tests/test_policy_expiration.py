@@ -1,7 +1,7 @@
-"""Regresión para BUG-15: ninguna transición automática movía una póliza vencida a
-`expired`, así que `/policies/balance` seguía contándola como vigente para siempre,
-mientras que el dashboard (por su propio bug de comparar contra el string "active", que
-nunca existe) reportaba 0 pólizas activas sin importar los datos reales."""
+"""Policy expiration regression tests: a lapsed policy must be moved to `expired`
+automatically, so `/policies/balance` stops counting it as active forever, and the
+dashboard must not compare against the string "active" (which no Policy.status ever
+uses) and report 0 active policies regardless of the real data."""
 
 from datetime import date, timedelta
 
@@ -44,8 +44,8 @@ def test_pending_cancel_policy_also_expires_once_lapsed(client, db_session):
 
 
 def test_already_cancelled_policy_is_not_reclassified_as_expired(client, db_session):
-    """Una póliza cancelada, aunque su fecha de vencimiento también quedó en el pasado,
-    no debe convertirse en 'expired' — el cliente la canceló, no dejó que venciera."""
+    """A cancelled policy, even when its expiration date is also in the past, must not
+    become 'expired' — the client cancelled it, they did not let it lapse."""
     user, policy = _lapsed_policy(db_session, status="cancelled", cancel_date=date.today() - timedelta(days=40))
 
     client.get(f"/policies/{policy.id}", headers=auth_headers(user))
@@ -63,8 +63,8 @@ def test_active_policies_balance_excludes_a_lapsed_policy(client, db_session):
 
 
 def test_dashboard_reports_in_force_policies_as_active_not_zero(client, db_session):
-    """Antes del fix, dashboard_summary comparaba contra el string 'active', que ningún
-    Policy.status usa jamás — active_policies daba 0 siempre, sin importar los datos."""
+    """dashboard_summary must not compare against the string 'active', which no
+    Policy.status ever uses — active_policies would always be 0 regardless of the data."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     owner = make_client(db_session, agent)
@@ -81,7 +81,7 @@ def test_dashboard_reports_in_force_policies_as_active_not_zero(client, db_sessi
 def test_dashboard_expired_count_matches_status_not_just_date(client, db_session):
     user, lapsed_policy = _lapsed_policy(db_session)
     admin_user = make_user(db_session, role="admin")
-    # Otra póliza cancelada con fecha pasada: NO debe contarse como "expired".
+    # Another cancelled policy with a past date: it must NOT count as "expired".
     make_policy(
         db_session,
         make_client(db_session, make_agent(db_session, make_supervisor(db_session))),
@@ -92,6 +92,6 @@ def test_dashboard_expired_count_matches_status_not_just_date(client, db_session
 
     resp = client.get("/dashboard", headers=auth_headers(admin_user))
     assert resp.status_code == 200
-    # sync_expired_policies ya corrió (via /dashboard); la de in_force pasa a expired,
-    # la cancelada se queda cancelada -> exactamente 1 "expired" real.
+    # sync_expired_policies already ran (via /dashboard); the in_force one becomes
+    # expired, the cancelled one stays cancelled -> exactly 1 real "expired".
     assert resp.json()["expired_policies"] == 1

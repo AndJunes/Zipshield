@@ -72,8 +72,8 @@ function fakeClaim(userId: string): ClaimCase {
   };
 }
 
-describe('AgentDetail — BUG-10: reclamos reales, no mock', () => {
-  it('deriva assignedClaims de ClaimsService.list() para los clientes del agente', async () => {
+describe('AgentDetail — real claims, not mock data', () => {
+  it('derives assignedClaims from ClaimsService.list() for the agent\'s clients', async () => {
     const client = fakeClient(1, 'user_001');
     const claim = fakeClaim('user_001');
 

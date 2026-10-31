@@ -57,8 +57,8 @@ def _client_counts_by_agent(db: Session, agent_ids: list[int]) -> dict[int, int]
 
 
 def _claims_by_agent(db: Session, agent_ids: list[int]) -> dict[int, AgentClaims]:
-    """Misma agregación que `_claims_for_agent`, pero para varios agentes a la vez en una
-    sola query (ver BUG-14) en vez de una por agente."""
+    """Same aggregation as `_claims_for_agent`, but for several agents at once in a
+    single query instead of one per agent (avoids N+1)."""
     result = {agent_id: AgentClaims() for agent_id in agent_ids}
     if not agent_ids:
         return result

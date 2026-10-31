@@ -17,8 +17,8 @@ class ClientCreate(ClientBase):
 
 
 class ClientUpdate(BaseModel):
-    """Reasignar `agent_id` no vive aquí: es una acción administrativa explícita, no un
-    campo más del PATCH genérico (ver BUG-04 en QA_AUDIT_REPORT.md)."""
+    """Reassigning `agent_id` does not live here: it is an explicit administrative
+    action, not just another field of the generic PATCH."""
 
     first_name: str | None = None
     last_name: str | None = None

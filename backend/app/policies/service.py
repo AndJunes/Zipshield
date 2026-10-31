@@ -15,8 +15,8 @@ from app.policies.schemas import PolicyCreate, PolicyUpdate
 
 
 def _filter_by_role(stmt, current_user: User):
-    """Mismo patrón que `clients/service.py::_filter_by_role`: un agente solo ve las
-    pólizas de sus propios clientes; un supervisor, las de los agentes de su equipo."""
+    """Same pattern as `clients/service.py::_filter_by_role`: an agent only sees the
+    policies of their own clients; a supervisor, those of the agents on their team."""
     if current_user.role == "agent" and current_user.ref_id is not None:
         return stmt.join(Client, Policy.client_id == Client.id).where(
             Client.agent_id == current_user.ref_id
@@ -29,7 +29,7 @@ def _filter_by_role(stmt, current_user: User):
     return stmt
 
 
-# Máquina de estados de la póliza: qué transiciones son válidas desde cada estado.
+# Policy state machine: which transitions are valid from each status.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "quote": {"underwriting", "declined"},
     "underwriting": {"pending_info", "in_force", "declined"},
@@ -37,7 +37,7 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "in_force": {"pending_cancel", "cancelled", "expired"},
     "pending_cancel": {"in_force", "cancelled"},
     "cancelled": {"in_force"},   # reinstatement
-    "expired": {"in_force"},     # renovación tardía
+    "expired": {"in_force"},     # late renewal
     "declined": set(),           # terminal
 }
 
@@ -51,7 +51,7 @@ def _add_months(start: date, months: int) -> date:
 
 
 def risk_factor_for_client(db: Session, client: Client) -> float:
-    """Recargo por siniestralidad: el historial del cliente alimenta la prima (como en la realidad)."""
+    """Loss-history surcharge: the client's history feeds the premium (as in real life)."""
     h = compute_client_history(db, client)
     factor = 1.0
     if h.rejected_claim >= 2:
@@ -64,12 +64,12 @@ def risk_factor_for_client(db: Session, client: Client) -> float:
 
 
 def quote_policy(db: Session, policy_type: str, sum_insured, client_id: int | None = None) -> dict:
-    """Cotiza una póliza SIN guardarla (preview del rating)."""
+    """Quote a policy WITHOUT saving it (rating preview)."""
     risk_factor = 1.0
     if client_id is not None:
         client = db.get(Client, client_id)
         if client is None:
-            raise NotFoundError(f"Cliente {client_id} no encontrado")
+            raise NotFoundError(f"Client {client_id} not found")
         risk_factor = risk_factor_for_client(db, client)
     return pricing.quote(policy_type, sum_insured, risk_factor=risk_factor)
 
@@ -94,8 +94,8 @@ def create_policy(db: Session, data: PolicyCreate, actor_id: int | None = None) 
         net_premium=q["net_premium"],
         taxes_fees=q["taxes_fees"],
         price=q["total_premium"],
-        # `rating_factors` es JSON: Decimal no es serializable ahí, a diferencia de las
-        # columnas Numeric de arriba (que sí lo aceptan directamente).
+        # `rating_factors` is JSON: Decimal is not serializable there, unlike the
+        # Numeric columns above (which accept it directly).
         rating_factors={"base_rate": float(q["base_rate"]), "risk_factor": float(q["risk_factor"]),
                         "tax_rate": q["tax_rate"], "policy_fee": q["policy_fee"]},
         coverage=data.coverage,
@@ -115,12 +115,12 @@ def create_policy(db: Session, data: PolicyCreate, actor_id: int | None = None) 
 
 
 def sync_expired_policies(db: Session) -> int:
-    """`ALLOWED_TRANSITIONS` declara `in_force -> expired`, pero nada la disparaba
-    automáticamente con el paso del tiempo (BUG-15): el `status` se quedaba en
-    `in_force` para siempre aunque `expiration_date` ya hubiera pasado, y el balance de
-    pólizas activas y el dashboard terminaban contando cosas distintas. Se sincroniza de
-    forma perezosa, sin pasar por `transition_status` (que ahora exige un `current_user`
-    para el scoping por rol — esto es una transición del sistema, no de un usuario)."""
+    """`ALLOWED_TRANSITIONS` declares `in_force -> expired`, but nothing used to trigger
+    it automatically as time passed: the `status` stayed `in_force` forever even after
+    `expiration_date`, so the active-policy balance and the dashboard ended up counting
+    different things. Synced lazily, without going through `transition_status` (which
+    requires a `current_user` for role scoping — this is a system transition, not a
+    user's)."""
     today = date.today()
     stale = list(db.scalars(
         select(Policy).where(
@@ -141,9 +141,9 @@ def sync_expired_policies(db: Session) -> int:
 
 def list_policies(db: Session, current_user: User) -> list[Policy]:
     sync_expired_policies(db)
-    # selectinload evita 1 query extra por póliza al serializar PolicyRead.coverages
-    # (BUG-14): sin esto, Policy.coverages (lazy="select" por defecto) dispara una
-    # consulta adicional por cada fila del listado.
+    # selectinload avoids one extra query per policy when serializing
+    # PolicyRead.coverages: without it, Policy.coverages (lazy="select" by default)
+    # fires an additional query for every row in the listing (N+1).
     stmt = (
         _filter_by_role(select(Policy), current_user)
         .options(selectinload(Policy.coverages))
@@ -167,7 +167,7 @@ def list_policy_events(db: Session, policy_id: int, current_user: User) -> list[
 
 
 def active_policies_balance(db: Session) -> dict:
-    """Prima escrita de las pólizas vigentes (in_force)."""
+    """Written premium of the active (in_force) policies."""
     sync_expired_policies(db)
     policies = db.scalars(select(Policy).where(Policy.status == "in_force")).all()
     total = sum(float(p.price) for p in policies)
@@ -177,8 +177,8 @@ def active_policies_balance(db: Session) -> dict:
     }
 
 
-# Estados terminales de la máquina de `ALLOWED_TRANSITIONS`: una vez ahí, la póliza no
-# debe volver a editarse por un PATCH genérico (ver BUG-07 en QA_AUDIT_REPORT.md).
+# Terminal states of the `ALLOWED_TRANSITIONS` machine: once there, the policy must
+# not be edited again through the generic PATCH.
 _TERMINAL_STATUSES = {"cancelled", "declined", "expired"}
 
 
@@ -186,13 +186,13 @@ def update_policy(db: Session, policy_id: int, changes: PolicyUpdate, current_us
     policy = get_policy(db, policy_id, current_user)
     if policy.status in _TERMINAL_STATUSES:
         raise ConflictError(
-            f"La póliza está en estado '{policy.status}' y no puede editarse."
+            f"Policy is in status '{policy.status}' and cannot be edited."
         )
 
     updates = changes.model_dump(exclude_unset=True)
     new_expiration = updates.get("expiration_date", policy.expiration_date)
     if new_expiration < policy.effective_date:
-        raise ConflictError("expiration_date no puede ser anterior a effective_date")
+        raise ConflictError("expiration_date cannot be earlier than effective_date")
 
     for field, value in updates.items():
         setattr(policy, field, value)
@@ -208,10 +208,10 @@ def update_policy(db: Session, policy_id: int, changes: PolicyUpdate, current_us
 def transition_status(db: Session, policy_id: int, to_status: str, current_user: User,
                       actor_id: int | None = None,
                       reason: str | None = None, event_type: str | None = None) -> Policy:
-    """Cambia el estado validando la máquina de estados y registra el evento en el historial."""
+    """Change the status validating the state machine, and record the event in the timeline."""
     policy = get_policy(db, policy_id, current_user)
     if to_status not in ALLOWED_TRANSITIONS.get(policy.status, set()):
-        raise ConflictError(f"Transición inválida: '{policy.status}' → '{to_status}'")
+        raise ConflictError(f"Invalid transition: '{policy.status}' → '{to_status}'")
     previous = policy.status
     policy.status = to_status
     if to_status == "cancelled":
@@ -234,8 +234,8 @@ def cancel_policy(db: Session, policy_id: int, current_user: User, reason: str =
 
 
 def can_file_claim(policy: Policy | None, date_of_loss: date | None) -> bool:
-    """Regla de oro: un reclamo es válido solo si el siniestro ocurrió mientras la cobertura
-    estaba en vigor (no basta con que la póliza esté 'activa hoy')."""
+    """Golden rule: a claim is valid only if the loss occurred while coverage was in
+    force (the policy being 'active today' is not enough)."""
     if policy is None:
         return False
     dol = date_of_loss or date.today()

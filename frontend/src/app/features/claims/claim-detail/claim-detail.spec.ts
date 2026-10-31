@@ -31,7 +31,7 @@ function baseClaim(overrides: Partial<ClaimCase> = {}): ClaimCase {
   };
 }
 
-describe('ClaimDetail — BUG-09: carrera editar vs. analizar', () => {
+describe('ClaimDetail — edit vs. analyze race', () => {
   let analyzeSubject: Subject<ClaimCase>;
   let claimsServiceMock: Partial<ClaimsService>;
 
@@ -58,7 +58,7 @@ describe('ClaimDetail — BUG-09: carrera editar vs. analizar', () => {
     }).compileComponents();
   });
 
-  it('deshabilita el botón "Editar" mientras el análisis está en curso', () => {
+  it('disables the "Editar" button while the analysis is running', () => {
     const fixture = TestBed.createComponent(ClaimDetail);
     fixture.detectChanges();
 
@@ -72,13 +72,13 @@ describe('ClaimDetail — BUG-09: carrera editar vs. analizar', () => {
     expect(editButton?.disabled).toBe(true);
   });
 
-  it('no pisa en silencio el resultado del análisis si llega mientras se edita', () => {
+  it('does not silently overwrite the analysis result when it arrives mid-edit', () => {
     const fixture = TestBed.createComponent(ClaimDetail);
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
     component.analyze();
-    component.startEdit(); // el usuario alcanzó a entrar a editar antes de que resuelva
+    component.startEdit(); // the user managed to start editing before it resolved
 
     const analyzed = baseClaim({ claimStatusJustification: 'Analizado por IA', severity: 'high' });
     analyzeSubject.next(analyzed);
@@ -92,7 +92,7 @@ describe('ClaimDetail — BUG-09: carrera editar vs. analizar', () => {
     expect(component.pendingAnalysisResult()).toBeNull();
   });
 
-  it('aplica el análisis normalmente cuando NO se está editando', () => {
+  it('applies the analysis normally when NOT editing', () => {
     const fixture = TestBed.createComponent(ClaimDetail);
     const component = fixture.componentInstance;
     fixture.detectChanges();

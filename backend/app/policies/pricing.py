@@ -1,16 +1,16 @@
-"""Motor de tarificación (rating) simple pero realista.
+"""Simple but realistic rating engine.
 
-La prima NO se escribe a mano: se calcula a partir de la suma asegurada, un catálogo de
-coberturas por producto (cada una con su tasa, deducible y límite) y factores de riesgo.
-Modelo multiplicativo (estándar en seguros). Devuelve un desglose auditable.
+The premium is NOT typed in by hand: it is computed from the sum insured, a per-product
+coverage catalog (each with its own rate, deductible and limit) and risk factors.
+Multiplicative model (standard in insurance). Returns an auditable breakdown.
 
-    prima_cobertura = suma_asegurada × tasa × risk_factor × factor_deducible
-    net_premium     = max(min_premium, Σ primas_coberturas)
-    total           = net_premium + policy_fee + net_premium × tax_rate
+    coverage_premium = sum_insured × rate × risk_factor × deductible_factor
+    net_premium      = max(min_premium, Σ coverage_premiums)
+    total            = net_premium + policy_fee + net_premium × tax_rate
 
-Todo el cálculo se hace en `Decimal` (ver BUG-13 en QA_AUDIT_REPORT.md): computar dinero en
-`float` produce errores de redondeo de un centavo en más de la mitad de las combinaciones
-reales de suma asegurada/risk_factor que genera el propio seed de datos.
+All math is done in `Decimal`: computing money in `float` produces one-cent rounding
+errors in more than half of the real sum-insured/risk_factor combinations the data seed
+itself generates.
 """
 
 from decimal import Decimal, ROUND_HALF_UP
@@ -26,15 +26,15 @@ def _to_decimal(value) -> Decimal:
 def _q2(value: Decimal) -> Decimal:
     return value.quantize(_TWO_PLACES, rounding=ROUND_HALF_UP)
 
-# Parámetros por producto (Line of Business). Como el reference.py del LLM: data, no DDL.
+# Per-product (Line of Business) parameters. Like the LLM's reference.py: data, not DDL.
 RATE_TABLE = {
     "car":     {"min_premium": 200, "policy_fee": 25, "tax_rate": 0.16},
     "laptop":  {"min_premium": 50,  "policy_fee": 10, "tax_rate": 0.16},
     "package": {"min_premium": 120, "policy_fee": 15, "tax_rate": 0.16},
 }
 
-# Catálogo de coberturas válidas por producto (conecta car/laptop/package de Zipshield
-# con coberturas reales de P&C / inland marine).
+# Catalog of valid coverages per product (maps Zipshield's car/laptop/package to real
+# P&C / inland marine coverages).
 COVERAGE_CATALOG = {
     "car": [
         {"code": "collision",       "name": "Colisión",              "rate": 0.030, "deductible": 500, "limit_factor": 1.0},
@@ -54,7 +54,7 @@ COVERAGE_CATALOG = {
 
 
 def _deductible_factor(deductible, sum_insured: Decimal) -> Decimal:
-    """Más deducible → prima más barata (el cliente asume más riesgo)."""
+    """Higher deductible → cheaper premium (the client takes on more risk)."""
     if not sum_insured:
         return Decimal("1")
     ratio = _to_decimal(deductible) / sum_insured
@@ -62,11 +62,11 @@ def _deductible_factor(deductible, sum_insured: Decimal) -> Decimal:
 
 
 def quote(policy_type: str, sum_insured, risk_factor=Decimal("1.0")) -> dict:
-    """Cotiza una póliza. Devuelve un desglose con las coberturas y los montos."""
+    """Quote a policy. Returns a breakdown with the coverages and amounts."""
     cfg = RATE_TABLE.get(policy_type)
     cov_defs = COVERAGE_CATALOG.get(policy_type, [])
     if cfg is None:
-        raise ValueError(f"Producto desconocido: {policy_type}")
+        raise ValueError(f"Unknown product: {policy_type}")
 
     si = _to_decimal(sum_insured)
     rf = _to_decimal(risk_factor)

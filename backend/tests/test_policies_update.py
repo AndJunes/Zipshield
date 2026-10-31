@@ -1,5 +1,5 @@
-"""Regresión para BUG-07: `update_policy` no tenía guardia de máquina de estados, no
-validaba el orden de fechas, y no dejaba ningún rastro de auditoría (`PolicyEvent`)."""
+"""Policy update regression tests: `update_policy` must enforce the state-machine guard,
+validate date ordering, and leave an audit trail (`PolicyEvent`)."""
 
 from datetime import date, timedelta
 
@@ -19,10 +19,10 @@ def test_update_in_force_policy_succeeds_and_records_event(client, db_session):
     user, policy = _agent_and_policy(db_session)
 
     resp = client.patch(
-        f"/policies/{policy.id}", json={"name": "Póliza renombrada"}, headers=auth_headers(user)
+        f"/policies/{policy.id}", json={"name": "Renamed policy"}, headers=auth_headers(user)
     )
     assert resp.status_code == 200
-    assert resp.json()["name"] == "Póliza renombrada"
+    assert resp.json()["name"] == "Renamed policy"
 
     resp = client.get(f"/policies/{policy.id}/events", headers=auth_headers(user))
     assert resp.status_code == 200
@@ -33,18 +33,18 @@ def test_cannot_update_a_cancelled_policy(client, db_session):
     user, policy = _agent_and_policy(db_session, status="cancelled")
 
     resp = client.patch(
-        f"/policies/{policy.id}", json={"name": "no debería aplicarse"}, headers=auth_headers(user)
+        f"/policies/{policy.id}", json={"name": "should not apply"}, headers=auth_headers(user)
     )
     assert resp.status_code == 409
     db_session.refresh(policy)
-    assert policy.name != "no debería aplicarse"
+    assert policy.name != "should not apply"
 
 
 def test_cannot_update_an_expired_policy(client, db_session):
     user, policy = _agent_and_policy(db_session, status="expired")
 
     resp = client.patch(
-        f"/policies/{policy.id}", json={"coverage": "algo"}, headers=auth_headers(user)
+        f"/policies/{policy.id}", json={"coverage": "anything"}, headers=auth_headers(user)
     )
     assert resp.status_code == 409
 
@@ -62,7 +62,7 @@ def test_expiration_date_before_effective_date_is_rejected(client, db_session):
 
 
 def test_expiration_date_equal_to_effective_date_is_allowed(client, db_session):
-    """Caso límite: el mismo día es válido, el rechazo es solo para fechas ANTERIORES."""
+    """Edge case: the same day is valid; only EARLIER dates are rejected."""
     user, policy = _agent_and_policy(db_session)
     same_day = str(policy.effective_date)
 

@@ -31,8 +31,8 @@ def list_clients(db: Session, current_user: User) -> list[ClientRead]:
     stmt = _filter_by_role(select(Client), current_user).order_by(Client.id.asc())
     clients = list(db.scalars(stmt).all())
 
-    # BUG-14: una sola query para el historial de TODOS los clientes de la página, en
-    # vez de una query por cliente dentro de compute_client_history.
+    # Single query for the history of ALL clients on the page, instead of one
+    # query per client inside compute_client_history (avoids N+1).
     claims_by_user: dict[str, list[ClaimCase]] = {}
     if clients:
         user_ids = [c.user_id for c in clients]

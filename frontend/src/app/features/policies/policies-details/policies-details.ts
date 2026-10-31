@@ -15,9 +15,9 @@ import {
 type TypeFilter = PolicyType | 'all';
 type StatusFilter = PolicyStatus | 'all';
 
-// A12: `toISOString()` convierte a UTC antes de recortar la fecha — para un usuario en
-// una zona horaria negativa por la tarde/noche, esto precargaba el formulario con la
-// fecha de MAÑANA en vez de la de hoy. Se arma la fecha con los componentes locales.
+// `toISOString()` converts to UTC before trimming the date — for a user in a negative
+// timezone in the evening, that would prefill the form with TOMORROW's date instead of
+// today's. The date is built from the local components instead.
 function todayLocalISODate(): string {
   const d = new Date();
   const year = d.getFullYear();
@@ -48,8 +48,8 @@ export class PoliciesDetails {
   readonly createError = signal<string | null>(null);
 
   readonly createForm = this.fb.group({
-    // A9: Validators.required por sí solo NO rechaza 0 (solo null/vacío) — sin
-    // Validators.min(1), el formulario se puede enviar con "ningún cliente elegido".
+    // Validators.required alone does NOT reject 0 (only null/empty) — without
+    // Validators.min(1), the form can be submitted with "no client selected".
     clientId: [0, [Validators.required, Validators.min(1)]],
     type: this.fb.control<PolicyType>('car'),
     name: ['', Validators.required],

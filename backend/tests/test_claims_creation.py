@@ -1,5 +1,5 @@
-"""Regresión para BUG-08 (create_claim no verificaba que la póliza citada perteneciera
-al usuario reclamante) y A2 (date_of_loss aceptaba fechas futuras)."""
+"""Claim creation regression tests: create_claim must verify the referenced policy
+belongs to the claiming user, and date_of_loss must reject future dates."""
 
 from datetime import date, timedelta
 
@@ -10,7 +10,7 @@ def _base_payload(user_id: str, policy_id: int, date_of_loss: str) -> dict:
     return {
         "user_id": user_id,
         "object": "car",
-        "conversation": "Choqué el auto",
+        "conversation": "I crashed the car",
         "image_urls": [],
         "policy_id": policy_id,
         "date_of_loss": date_of_loss,
@@ -30,7 +30,7 @@ def test_create_claim_with_own_policy_succeeds(client, db_session):
 
 
 def test_create_claim_rejects_policy_of_another_user(client, db_session):
-    """BUG-08: la póliza existe y está vigente, pero pertenece a OTRO cliente."""
+    """The policy exists and is in force, but belongs to ANOTHER client."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     owner = make_client(db_session, agent)
@@ -55,7 +55,7 @@ def test_create_claim_rejects_nonexistent_policy(client, db_session):
 
 
 def test_create_claim_rejects_future_date_of_loss(client, db_session):
-    """A2: una pérdida no puede haber ocurrido 'mañana'."""
+    """A loss cannot have happened 'tomorrow'."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     owner = make_client(db_session, agent)
@@ -69,7 +69,7 @@ def test_create_claim_rejects_future_date_of_loss(client, db_session):
 
 
 def test_create_claim_accepts_date_of_loss_today(client, db_session):
-    """Caso límite: hoy mismo sigue siendo válido (el límite es 'no en el futuro')."""
+    """Edge case: today is still valid (the limit is 'not in the future')."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     owner = make_client(db_session, agent)

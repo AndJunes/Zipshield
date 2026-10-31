@@ -6,7 +6,7 @@ import { PoliciesDetails } from './policies-details';
 import { PoliciesService } from '../policies.service';
 import { ClientsService } from '../../clients/clients.service';
 
-describe('PoliciesDetails — A9/A10: validación de cliente y errores visibles', () => {
+describe('PoliciesDetails — client validation and visible errors', () => {
   async function setup(policiesServiceMock: Partial<PoliciesService>) {
     await TestBed.configureTestingModule({
       imports: [PoliciesDetails],
@@ -21,14 +21,14 @@ describe('PoliciesDetails — A9/A10: validación de cliente y errores visibles'
     return fixture.componentInstance;
   }
 
-  it('A9: el formulario es inválido con clientId=0 (ningún cliente elegido)', async () => {
+  it('marks the form invalid with clientId=0 (no client selected)', async () => {
     const component = await setup({ list: () => of([]) });
     component.startCreate();
     component.createForm.patchValue({ clientId: 0 });
     expect(component.createForm.invalid).toBe(true);
   });
 
-  it('A9: el formulario es válido con un clientId real', async () => {
+  it('marks the form valid with a real clientId', async () => {
     const component = await setup({ list: () => of([]) });
     component.startCreate();
     component.createForm.patchValue({
@@ -39,7 +39,7 @@ describe('PoliciesDetails — A9/A10: validación de cliente y errores visibles'
     expect(component.createForm.valid).toBe(true);
   });
 
-  it('A10: doQuote() muestra un mensaje de error cuando la petición falla', async () => {
+  it('doQuote() shows an error message when the request fails', async () => {
     const component = await setup({
       list: () => of([]),
       quote: () => throwError(() => new Error('boom')),
@@ -50,7 +50,7 @@ describe('PoliciesDetails — A9/A10: validación de cliente y errores visibles'
     expect(component.quoting()).toBe(false);
   });
 
-  it('A10: saveCreate() muestra un mensaje de error cuando la petición falla', async () => {
+  it('saveCreate() shows an error message when the request fails', async () => {
     const component = await setup({
       list: () => of([]),
       create: () => throwError(() => new Error('boom')),
@@ -67,14 +67,14 @@ describe('PoliciesDetails — A9/A10: validación de cliente y errores visibles'
   });
 });
 
-describe('PoliciesDetails — A12: fecha por defecto en zona horaria local, no UTC', () => {
+describe('PoliciesDetails — default date in local timezone, not UTC', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('startCreate() precarga la fecha de HOY en hora local, no la de mañana en UTC', async () => {
-    // 23:00 en America/Mexico_City (UTC-6) ya es "mañana" en UTC — exactamente el
-    // escenario que `toISOString().slice(0, 10)` calculaba mal.
+  it('startCreate() prefills TODAY\'s date in local time, not tomorrow\'s in UTC', async () => {
+    // 23:00 in America/Mexico_City (UTC-6) is already "tomorrow" in UTC — exactly the
+    // scenario `toISOString().slice(0, 10)` got wrong.
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 0, 15, 23, 0, 0));
 

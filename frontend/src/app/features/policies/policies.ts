@@ -15,9 +15,9 @@ interface CountRow {
   count: number;
 }
 
-// A11: sumar `Number(p.price)` de muchas pólizas con `+` reintroduce el error de
-// redondeo binario que el resto del modelo evita a propósito manteniendo el dinero
-// como string. Sumar en centavos enteros evita que el error se acumule.
+// Summing `Number(p.price)` across many policies with `+` reintroduces the binary
+// rounding error the rest of the model deliberately avoids by keeping money as a
+// string. Summing in integer cents keeps the error from accumulating.
 function priceToCents(value: string | number): number {
   const [whole, fraction = ''] = String(value).split('.');
   const cents = (fraction + '00').slice(0, 2);

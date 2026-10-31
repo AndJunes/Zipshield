@@ -34,7 +34,7 @@ def get_claim(db: Session, claim_id: int, current_user: User) -> ClaimCase:
     query = _scope_by_role(db.query(ClaimCase).filter(ClaimCase.id == claim_id), db, current_user)
     claim = query.first()
     if not claim:
-        raise NotFoundError(f"Reclamo {claim_id} no encontrado")
+        raise NotFoundError(f"Claim {claim_id} not found")
     return claim
 
 
@@ -42,12 +42,12 @@ def create_claim(db: Session, data: ClaimCreate) -> ClaimCase:
     if data.policy_id is not None:
         policy = db.get(Policy, data.policy_id)
         if policy is None:
-            raise NotFoundError(f"Póliza {data.policy_id} no encontrada")
+            raise NotFoundError(f"Policy {data.policy_id} not found")
         if policy.client.user_id != data.user_id:
-            raise ConflictError("La póliza no pertenece al usuario que reporta el reclamo")
+            raise ConflictError("The policy does not belong to the user filing the claim")
         if not can_file_claim(policy, data.date_of_loss):
             raise ConflictError(
-                "La póliza no está vigente en la fecha de pérdida; no se puede registrar el reclamo."
+                "The policy is not in force on the date of loss; the claim cannot be filed."
             )
     claim = ClaimCase(**data.model_dump())
     db.add(claim)
@@ -65,7 +65,7 @@ def update_claim(db: Session, claim_id: int, changes: ClaimUpdate, current_user:
     return claim
 
 
-# Campos que el análisis del LLM puede sobrescribir (los 10 que produce el modelo).
+# Fields the LLM analysis may overwrite (the 10 the model produces).
 ANALYSIS_FIELDS = frozenset(
     {
         "evidence_standard_met",
@@ -83,9 +83,9 @@ ANALYSIS_FIELDS = frozenset(
 
 
 def apply_analysis(db: Session, claim: ClaimCase, fields: dict) -> ClaimCase:
-    """Persiste en el claim los campos devueltos por el análisis del LLM.
+    """Persist the fields returned by the LLM analysis on the claim.
 
-    Solo escribe las columnas de análisis (lista blanca), nunca los datos de entrada
+    Writes only the analysis columns (allowlist), never the input data
     (user_id, object, conversation, image_urls).
     """
     for field, value in fields.items():

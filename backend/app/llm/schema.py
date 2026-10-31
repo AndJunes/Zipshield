@@ -1,7 +1,7 @@
-"""Output schema and validation. Mirrors the HackerRank challenge contract exactly.
+"""Output schema and validation for the claim-review pipeline.
 
-Ported verbatim from the challenge: the allowed values, coercion and the deterministic
-consistency layer (safe degradation) are security-relevant and were kept unchanged.
+The allowed values, coercion and the deterministic consistency layer (safe degradation)
+are security-relevant: keep them in sync with the prompt contract in prompts.py.
 """
 
 import re

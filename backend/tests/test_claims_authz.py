@@ -1,6 +1,6 @@
-"""Regresión para BUG-02: `/claims/{id}` no verificaba propiedad (IDOR) y `PATCH`
-permitía escribir directamente los 10 campos que solo la IA debería poder producir,
-evadiendo el guardarraíl de `/analyze`."""
+"""Authorization regression tests for claims: `/claims/{id}` must check ownership (IDOR)
+and `PATCH` must not allow writing the 10 fields only the analysis should produce,
+bypassing the `/analyze` guardrail."""
 
 from tests.conftest import (
     auth_headers,
@@ -23,10 +23,10 @@ def test_agent_can_read_and_patch_own_client_claim(client, db_session):
     assert resp.status_code == 200
 
     resp = client.patch(
-        f"/claims/{claim.id}", json={"conversation": "actualizado"}, headers=auth_headers(user)
+        f"/claims/{claim.id}", json={"conversation": "updated"}, headers=auth_headers(user)
     )
     assert resp.status_code == 200
-    assert resp.json()["conversation"] == "actualizado"
+    assert resp.json()["conversation"] == "updated"
 
 
 def test_agent_cannot_read_another_agents_client_claim(client, db_session):
@@ -50,7 +50,7 @@ def test_agent_cannot_patch_another_agents_client_claim(client, db_session):
     user_a = make_user(db_session, role="agent", ref_id=agent_a.id)
 
     resp = client.patch(
-        f"/claims/{claim_of_b.id}", json={"conversation": "hackeado"}, headers=auth_headers(user_a)
+        f"/claims/{claim_of_b.id}", json={"conversation": "hacked"}, headers=auth_headers(user_a)
     )
     assert resp.status_code == 404
 
@@ -68,7 +68,7 @@ def test_agent_cannot_trigger_analyze_on_another_agents_client_claim(client, db_
 
 
 def test_patch_cannot_set_analysis_fields_directly(client, db_session):
-    """El campo antes explotable: PATCH ya no acepta claim_status/severity/etc."""
+    """PATCH does not accept claim_status/severity/etc. (analysis-only fields)."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     own_client = make_client(db_session, agent)
@@ -85,7 +85,7 @@ def test_patch_cannot_set_analysis_fields_directly(client, db_session):
         },
         headers=auth_headers(user),
     )
-    assert resp.status_code == 200  # los campos desconocidos se ignoran, no rompen la petición
+    assert resp.status_code == 200  # unknown fields are ignored, they do not break the request
     db_session.refresh(claim)
     assert claim.claim_status == "not_enough_information"
     assert claim.evidence_standard_met is False

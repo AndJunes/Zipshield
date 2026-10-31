@@ -1,5 +1,5 @@
-"""Regresión para BUG-05 (JWT_SECRET por defecto sin ninguna salvaguarda) y A3 (CORS
-definido en config.py pero nunca conectado a main.py)."""
+"""Regression tests: the default JWT_SECRET must be rejected in production, and the CORS
+origins defined in config.py must actually be wired into main.py."""
 
 import pytest
 
@@ -27,8 +27,8 @@ def test_cors_origin_list_parses_comma_separated_origins():
 
 
 def test_app_cors_allows_the_configured_origins(client):
-    """La app real (main.py) debe reflejar exactamente lo que expone `cors_origin_list`,
-    no una lista hardcodeada que ignore la configuración."""
+    """The real app (main.py) must reflect exactly what `cors_origin_list` exposes,
+    not a hardcoded list that ignores the configuration."""
     from app.core.config import get_settings
 
     for origin in get_settings().cors_origin_list:

@@ -23,7 +23,7 @@ def create(data: PolicyCreate, db: Session = Depends(get_db), current_user=Depen
 
 @router.post("/quote", response_model=QuoteResponse)
 def quote(data: QuoteRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    """Cotiza una póliza sin guardarla (devuelve el desglose de la prima)."""
+    """Quote a policy without saving it (returns the premium breakdown)."""
     return service.quote_policy(db, data.type.value, data.sum_insured, client_id=data.client_id)
 
 

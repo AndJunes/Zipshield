@@ -21,8 +21,8 @@ export class ClientsDetails {
   private readonly claimsService = inject(ClaimsService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  // BUG-10: antes se calculaba una sola vez a partir de datos mock; ahora se llena con
-  // los reclamos reales del backend, así que sí refleja reclamos creados/analizados.
+  // Filled with the backend's real claims (not computed once from mock data), so it
+  // reflects claims created/analyzed during the session.
   private readonly userIdsWithClaims = signal<Set<string>>(new Set());
 
   readonly clients = signal<ClientCard[]>([]);

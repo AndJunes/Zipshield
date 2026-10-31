@@ -53,10 +53,10 @@ def analyze(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Analiza el reclamo con el LLM y persiste los 10 campos del resultado.
+    """Analyze the claim with the LLM and persist the 10 result fields.
 
-    Si el LLM no está disponible (falta la API key o falla la red), responde 502 y el
-    reclamo queda intacto.
+    If the LLM is unavailable (missing API key or network failure), respond 502 and
+    leave the claim untouched.
     """
     claim = service.get_claim(db, claim_id, current_user)
     try:
@@ -64,6 +64,6 @@ def analyze(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"No se pudo completar el análisis: {exc}",
+            detail=f"Could not complete the analysis: {exc}",
         )
     return service.apply_analysis(db, claim, fields)

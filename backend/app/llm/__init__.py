@@ -1,9 +1,9 @@
-"""Módulo LLM de Zipshield: análisis automático de claims con OpenRouter (modelo con visión).
+"""Zipshield LLM module: automated claim analysis via OpenRouter (vision model).
 
-Punto de entrada público:
+Public entry point:
     from app.llm.service import analyze_claim
-    fields = analyze_claim(db, claim)   # dict con los 10 campos listos para guardar
+    fields = analyze_claim(db, claim)   # dict with the 10 fields ready to persist
 
-El "cerebro" (prompts, validación de salida y capa anti-inyección) está portado del reto
-de HackerRank casi sin cambios; la cáscara de entrada/salida se adaptó al backend de Zipshield.
+The "brain" (prompts, output validation and anti-injection layer) is self-contained;
+the input/output shell is adapted to the Zipshield backend.
 """
