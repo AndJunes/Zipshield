@@ -1,5 +1,7 @@
 # Zipshield
 
+[![License](https://img.shields.io/github/license/AndJunes/Zipshield)](LICENSE)
+
 An insurance claims platform with automatic AI review and role based access control enforced on the server, not just hidden in the UI.
 
 A FastAPI backend and an Angular 22 frontend that model the actual workflow of an insurance company. Agents onboard clients and policies, clients file claims, and a vision model reviews the photo evidence on each claim before a human has to look at it.
@@ -33,7 +35,7 @@ A FastAPI backend and an Angular 22 frontend that model the actual workflow of a
 
 | Claim reviewed by AI | Client portfolio |
 |---|---|
-| ![Claim detail with linked policy and AI verdict](docs/screenshots/reclamo-ia.png) | ![Client list with risk history](docs/screenshots/clientes.png) |
+| ![Claim detail with linked policy and AI verdict](docs/screenshots/claim-ai-review.png) | ![Client list with risk history](docs/screenshots/clients.png) |
 
 ## Stack
 
@@ -98,3 +100,11 @@ cd backend && python -m pytest -q
 # Frontend
 cd frontend && npx ng test --watch=false
 ```
+
+## Origin
+
+The AI reviewer's core — the prompt design, the output validation and the
+injection guard — started as my solution to a HackerRank challenge. Everything
+around it is original work built for Zipshield: the insurance domain, the
+role-based access control, PostgreSQL persistence with migrations, the policy
+lifecycle and pricing engine, and both test suites.
