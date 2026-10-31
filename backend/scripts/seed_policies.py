@@ -1,11 +1,11 @@
-"""Siembra de pólizas.
+"""Policy seeding.
 
-Crea una póliza por cada cliente que tiene un reclamo, con el `type` igual al `object` del
-reclamo (para poder vincular claim<->póliza de forma coherente en la Fase B). La prima se
-CALCULA con el motor de pricing. Incluye variedad de estados (vigente, vence pronto,
-vencida, cancelada) para que la lista se vea realista.
+Creates one policy per client that has a claim, with `type` equal to the claim's `object`
+(so claim<->policy can be linked coherently). The premium is COMPUTED with the pricing
+engine. Includes a variety of statuses (in force, expiring soon, expired, cancelled) so
+the listing looks realistic.
 
-Uso standalone (NO toca clientes/reclamos):
+Standalone usage (does NOT touch clients/claims):
     .venv/bin/python -m scripts.seed_policies
 """
 from datetime import date, timedelta
@@ -18,7 +18,7 @@ from app.policies import pricing
 from app.policies.models import Coverage, Policy, PolicyEvent
 from scripts.seed_claims import CLAIMS
 
-# Importar el resto de modelos para que el registro de mappers esté completo (relaciones).
+# Import the remaining models so the mapper registry is complete (relationships).
 from app.auth import models as _auth  # noqa: F401
 from app.supervisors import models as _supervisors  # noqa: F401
 from app.agents import models as _agents  # noqa: F401
@@ -58,7 +58,7 @@ def seed_policies(db) -> int:
         elif i % 13 == 0:
             status, cancel_date, cancel_reason = "cancelled", today - timedelta(days=20), "insured_request"
         elif i % 7 == 0:
-            expiration = today + timedelta(days=20)  # vence pronto
+            expiration = today + timedelta(days=20)  # expiring soon
 
         policy = Policy(
             type=ptype,
@@ -75,7 +75,7 @@ def seed_policies(db) -> int:
             net_premium=q["net_premium"],
             taxes_fees=q["taxes_fees"],
             price=q["total_premium"],
-            # `rating_factors` es JSON: Decimal no es serializable ahí (ver BUG-13).
+            # `rating_factors` is JSON: Decimal is not serializable there.
             rating_factors={"base_rate": float(q["base_rate"]), "risk_factor": rf,
                             "tax_rate": q["tax_rate"], "policy_fee": q["policy_fee"]},
             client_id=client.id,
@@ -100,7 +100,7 @@ def seed_policies(db) -> int:
 
 
 def backfill_claim_policies(db) -> int:
-    """Vincula cada reclamo existente con la póliza de su cliente del mismo tipo (demo coherente)."""
+    """Link each existing claim to its client's policy of the same type (coherent demo data)."""
     linked = 0
     for claim in db.scalars(select(ClaimCase)).all():
         client = db.scalar(select(Client).where(Client.user_id == claim.user_id))
@@ -121,14 +121,14 @@ def backfill_claim_policies(db) -> int:
 def main() -> None:
     db = SessionLocal()
     try:
-        db.execute(text("UPDATE claims SET policy_id = NULL"))   # romper FK antes de borrar pólizas
+        db.execute(text("UPDATE claims SET policy_id = NULL"))   # break the FK before deleting policies
         db.execute(text("DELETE FROM policy_events"))
         db.execute(text("DELETE FROM coverages"))
         db.execute(text("DELETE FROM policies"))
         db.commit()
         n = seed_policies(db)
         m = backfill_claim_policies(db)
-        print(f"Seeded {n} policies; vinculados {m} claims a su póliza.")
+        print(f"Seeded {n} policies; linked {m} claims to their policy.")
     finally:
         db.close()
 

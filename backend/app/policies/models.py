@@ -14,23 +14,23 @@ class Policy(Base):
     name: Mapped[str] = mapped_column(String(150))
     status: Mapped[str] = mapped_column(String(20), default="in_force", index=True)
 
-    # Vigencia
+    # Term
     effective_date: Mapped[date] = mapped_column(Date)
     expiration_date: Mapped[date] = mapped_column(Date)
     cancel_date: Mapped[date | None] = mapped_column(Date, default=None)
     cancel_reason: Mapped[str | None] = mapped_column(String(50), default=None)
 
-    # Pricing (desglose de la prima — calculado, auditable)
+    # Pricing (premium breakdown — computed, auditable)
     sum_insured: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     deductible: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     base_rate: Mapped[float] = mapped_column(Numeric(6, 4), default=0)
     risk_factor: Mapped[float] = mapped_column(Numeric(5, 3), default=1)
     net_premium: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     taxes_fees: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
-    price: Mapped[float] = mapped_column(Numeric(12, 2))    # prima total (= net_premium + taxes_fees)
+    price: Mapped[float] = mapped_column(Numeric(12, 2))    # total premium (= net_premium + taxes_fees)
     rating_factors: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    coverage: Mapped[str | None] = mapped_column(String(500), default=None)  # descripción legible
+    coverage: Mapped[str | None] = mapped_column(String(500), default=None)  # human-readable description
 
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"))
     client: Mapped["Client"] = relationship(back_populates="policies")
@@ -44,7 +44,7 @@ class Policy(Base):
 
 
 class Coverage(Base):
-    """Una cobertura de una póliza, con su límite, deducible y prima propios (rating por cobertura)."""
+    """One coverage of a policy, with its own limit, deductible and premium (per-coverage rating)."""
 
     __tablename__ = "coverages"
 
@@ -61,7 +61,7 @@ class Coverage(Base):
 
 
 class PolicyEvent(Base):
-    """Registro inmutable de cada transacción de la póliza (timeline auditable)."""
+    """Immutable record of each policy transaction (auditable timeline)."""
 
     __tablename__ = "policy_events"
 

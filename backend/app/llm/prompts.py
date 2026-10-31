@@ -1,9 +1,8 @@
 """Prompt construction. The prompt defines both the task and the expected JSON.
 
-Ported from the HackerRank challenge. The only adaptation vs. the original is that the
-secret salt for the anti-injection nonce comes from Zipshield's Settings (`guard_salt`)
-instead of a module-level constant. The SYSTEM_PROMPT and the user-prompt structure are
-kept verbatim (they were carefully tuned and evaluated).
+The secret salt for the anti-injection nonce comes from Zipshield's Settings
+(`guard_salt`). The SYSTEM_PROMPT and the user-prompt structure were carefully tuned:
+change them only deliberately.
 
 `spotlight=True` (production) delimits untrusted content with tagged markers and prepends a
 security clause.

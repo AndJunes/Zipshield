@@ -26,7 +26,7 @@ class ClaimCase(Base):
     supporting_image_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     valid_image: Mapped[bool] = mapped_column(Boolean, default=True)
     severity: Mapped[str] = mapped_column(String(20), default="unknown")
-    # Vínculo con la póliza (Tier 2): un reclamo se evalúa contra una póliza vigente.
+    # Link to the policy: a claim is evaluated against an in-force policy.
     policy_id: Mapped[int | None] = mapped_column(
         ForeignKey("policies.id"), index=True, default=None
     )

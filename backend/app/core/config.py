@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_expires_minutes: int = 24 * 60
     cors_origins: str = "http://localhost:4200,http://localhost:58376"
 
-    # --- LLM: análisis automático de claims (OpenRouter, modelo con visión) ---
+    # --- LLM: automated claim analysis (OpenRouter, vision model) ---
     openrouter_api_key: str = ""
     openrouter_model: str = "google/gemini-2.5-flash-lite"
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
@@ -29,12 +29,12 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def model_post_init(self, __context) -> None:
-        # BUG-05: el placeholder de JWT_SECRET no debe poder llegar a producción sin que
-        # nadie lo note — falla rápido en vez de firmar tokens con un secreto público.
+        # The JWT_SECRET placeholder must never reach production unnoticed —
+        # fail fast instead of signing tokens with a public secret.
         if self.environment == "production" and self.jwt_secret == "change-me-in-prod":
             raise RuntimeError(
-                "JWT_SECRET sigue en su valor por defecto en un entorno de producción. "
-                "Configura un secreto real (variable de entorno JWT_SECRET) antes de arrancar."
+                "JWT_SECRET is still set to its default value in a production environment. "
+                "Set a real secret (JWT_SECRET environment variable) before starting."
             )
 
 

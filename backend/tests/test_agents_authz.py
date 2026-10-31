@@ -1,6 +1,6 @@
-"""Regresión para BUG-03 (PATCH /agents/{id} sin ningún control de rol) y la parte de
-BUG-06 sobre GET /agents/{id} (sin scoping por rol, a pesar de que `list_agents` ya lo
-aplicaba vía `_filter_by_role`)."""
+"""Authorization regression tests for agents: PATCH /agents/{id} must enforce roles, and
+GET /agents/{id} must apply the same role scoping that `list_agents` already applies via
+`_filter_by_role`."""
 
 from tests.conftest import auth_headers, make_agent, make_supervisor, make_user
 
@@ -25,8 +25,8 @@ def test_agent_cannot_read_another_agents_record(client, db_session):
 
 
 def test_agent_cannot_patch_any_agent(client, db_session):
-    """BUG-03: antes del fix, un agente podía editar contribution/losses/supervisor_id
-    de cualquier otro agente porque el PATCH no exigía ningún rol."""
+    """An agent must not be able to edit contribution/losses/supervisor_id of any
+    other agent: the PATCH requires a role."""
     supervisor = make_supervisor(db_session)
     agent_a = make_agent(db_session, supervisor)
     agent_b = make_agent(db_session, supervisor)

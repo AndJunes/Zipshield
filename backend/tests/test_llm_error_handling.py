@@ -1,7 +1,7 @@
-"""Regresión para BUG-16: una respuesta 200 malformada del proveedor LLM producía un 500
-crudo (KeyError/JSONDecodeError sin capturar) en vez del 502 documentado, y el *reintento*
-de `client.chat()` dentro de `_review` podía tragarse un error de red/credenciales y
-degradarlo a "salida del modelo inválida" en vez de propagarlo."""
+"""Regression tests: a malformed 200 response from the LLM provider must produce the
+documented 502, not a raw 500 (uncaught KeyError/JSONDecodeError), and the `client.chat()`
+*retry* inside `_review` must not swallow a network/credential error and degrade it to
+"invalid model output" instead of propagating it."""
 
 import json
 
@@ -55,8 +55,8 @@ def test_client_raises_runtime_error_on_malformed_200_invalid_json(monkeypatch):
 
 
 class _FakeClientFirstBadThenNetworkError:
-    """Simula: primera respuesta con JSON no parseable -> dispara el reintento en modo
-    estricto -> ese reintento falla por red/credenciales (RuntimeError)."""
+    """Simulates: first response is unparseable JSON -> triggers the strict-mode retry
+    -> that retry fails on network/credentials (RuntimeError)."""
 
     def __init__(self):
         self.calls = 0
@@ -64,8 +64,8 @@ class _FakeClientFirstBadThenNetworkError:
     def chat(self, system, user_text, image_urls, response_format=None):
         self.calls += 1
         if self.calls == 1:
-            return "esto no es json"
-        raise RuntimeError("OpenRouter falló tras 4 intentos: Connection refused")
+            return "this is not json"
+        raise RuntimeError("OpenRouter failed after 4 attempts: Connection refused")
 
 
 def test_review_propagates_runtime_error_from_the_retry_call_instead_of_degrading():
@@ -73,10 +73,10 @@ def test_review_propagates_runtime_error_from_the_retry_call_instead_of_degradin
 
     with pytest.raises(RuntimeError):
         llm_service._review(
-            "car", "Choqué el auto", ["http://img.test/1.jpg"],
+            "car", "I crashed the car", ["http://img.test/1.jpg"],
             history={}, requirements=[], client=fake_client,
         )
-    assert fake_client.calls == 2  # sí se intentó el modo estricto antes de fallar
+    assert fake_client.calls == 2  # the strict-mode retry was attempted before failing
 
 
 def test_analyze_claim_endpoint_returns_502_not_500_on_malformed_llm_response(client, db_session, monkeypatch):
@@ -96,4 +96,4 @@ def test_analyze_claim_endpoint_returns_502_not_500_on_malformed_llm_response(cl
     assert resp.status_code == 502
 
     db_session.refresh(claim)
-    assert claim.claim_status == "not_enough_information"  # el reclamo queda intacto
+    assert claim.claim_status == "not_enough_information"  # the claim is left untouched

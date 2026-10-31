@@ -1,15 +1,15 @@
-"""Orquesta el análisis de un claim con el LLM (adaptación de agent/reviewer.py del reto).
+"""Orchestrates LLM analysis of a claim.
 
-Pieza pública:
-    analyze_claim(db, claim) -> dict con los 10 campos del análisis, ya en los TIPOS NATIVOS
-    del modelo ClaimCase (bools y listas), listos para asignar al claim y guardar.
+Public piece:
+    analyze_claim(db, claim) -> dict with the 10 analysis fields, already in the NATIVE
+    TYPES of the ClaimCase model (bools and lists), ready to assign to the claim and save.
 
-Flujo: historial desde la BD -> requisitos de evidencia (reference) -> guardia anti-inyección
--> VLM (OpenRouter) -> validación de salida -> capa de consistencia (degradación segura).
+Flow: history from the DB -> evidence requirements (reference) -> anti-injection guard
+-> VLM (OpenRouter) -> output validation -> consistency layer (safe degradation).
 
-Errores de red / credenciales del modelo se PROPAGAN al llamador (para que una futura ruta
-los traduzca a un 502 limpio). La salida basura del modelo, en cambio, degrada de forma
-segura a `not_enough_information` + `manual_review_required` (nunca auto-aprueba).
+Network / credential errors from the model PROPAGATE to the caller (so a route can turn
+them into a clean 502). Garbage model output, in contrast, degrades safely to
+`not_enough_information` + `manual_review_required` (never auto-approves).
 """
 
 import json
@@ -29,10 +29,10 @@ from app.llm.client import OpenRouterClient
 log = logging.getLogger("zipshield.llm")
 
 
-# --- API pública -----------------------------------------------------------------
+# --- Public API ------------------------------------------------------------------
 
 def analyze_claim(db: Session, claim: ClaimCase, client=None) -> dict:
-    """Analiza un claim y devuelve los 10 campos listos para persistir en ClaimCase."""
+    """Analyze a claim and return the 10 fields ready to persist on ClaimCase."""
     client = client or OpenRouterClient()
     history = build_user_history(db, claim.user_id, exclude_id=claim.id)
     requirements = reference.requirements_for(claim.object)
@@ -42,7 +42,7 @@ def analyze_claim(db: Session, claim: ClaimCase, client=None) -> dict:
 
 
 def _coverage_context(db: Session, claim: ClaimCase) -> str:
-    """Cobertura de la póliza vigente, para que el LLM decida sabiendo qué cubre realmente."""
+    """Coverage of the active policy, so the LLM decides knowing what is actually covered."""
     policy_id = getattr(claim, "policy_id", None)
     if db is None or policy_id is None:
         return ""
@@ -58,10 +58,10 @@ def _coverage_context(db: Session, claim: ClaimCase) -> str:
 
 
 def build_user_history(db: Session, user_id: str, exclude_id=None) -> dict:
-    """Adaptador delgado sobre compute_client_history para el prompt del LLM.
+    """Thin adapter over compute_client_history for the LLM prompt.
 
-    Misma fuente de verdad que la UI (app.clients.history); solo serializa history_flags
-    al formato-string que espera el prompt (';'.join(...) o 'none') en el borde.
+    Same source of truth as the UI (app.clients.history); it only serializes history_flags
+    to the string format the prompt expects (';'.join(...) or 'none') at the edge.
     """
     if db is None or not user_id:
         return {}
@@ -77,7 +77,7 @@ def build_user_history(db: Session, user_id: str, exclude_id=None) -> dict:
     }
 
 
-# --- Internos --------------------------------------------------------------------
+# --- Internals -------------------------------------------------------------------
 
 def _parse_json(text):
     text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
@@ -88,7 +88,7 @@ def _parse_json(text):
 
 
 def _context_texts(history, requirements):
-    """Textos no confiables extra que el guardia también escanea."""
+    """Extra untrusted texts the guard also scans."""
     hist = []
     for k in ("history_summary", "history_flags"):
         v = str((history or {}).get(k, "")).strip()
@@ -100,7 +100,7 @@ def _context_texts(history, requirements):
 
 
 def _empty_fields():
-    """Campos (en forma de strings, como el reto) para cuando no hay imágenes utilizables."""
+    """All-string fields (the internal pipeline format) for when there are no usable images."""
     return {
         "evidence_standard_met": "false",
         "evidence_standard_met_reason": "No usable images for this claim.",
@@ -116,10 +116,10 @@ def _empty_fields():
 
 
 def _to_db_fields(fields: dict) -> dict:
-    """Convierte la salida del reto (todo strings) a los tipos nativos de ClaimCase.
+    """Convert the pipeline output (all strings) to ClaimCase native types.
 
-    Convención (igual que el seed): risk_flags conserva ["none"] cuando está vacío;
-    supporting_image_ids se vuelve [] cuando no hay imágenes de soporte.
+    Convention (same as the seed): risk_flags keeps ["none"] when empty;
+    supporting_image_ids becomes [] when there are no supporting images.
     """
     risk = fields.get("risk_flags", "none") or "none"
     support = fields.get("supporting_image_ids", "none") or "none"
@@ -139,11 +139,11 @@ def _to_db_fields(fields: dict) -> dict:
 
 def _review(object_type, conversation, image_urls, history, requirements, client,
             coverage_text=None) -> dict:
-    """Núcleo sin BD: testeable pasando un `client` falso (sin red)."""
+    """DB-free core: testable by passing a fake `client` (no network)."""
     provided_ids = [f"img_{i + 1}" for i in range(len(image_urls))]
     guard_result = guard.analyze(conversation or "", None, _context_texts(history, requirements))
 
-    # Sin imágenes no se puede revisar visualmente -> degradación segura.
+    # No images means no visual review is possible -> safe degradation.
     if not image_urls:
         fields = schema.enforce_consistency(_empty_fields(), guard_result, [],
                                             audit=["NO_USABLE_IMAGES"])
@@ -156,7 +156,7 @@ def _review(object_type, conversation, image_urls, history, requirements, client
                                             coverage_text=coverage_text)
     rf = schema.output_response_format() if get_settings().llm_use_json_schema else None
 
-    # Llamada principal: los errores de red/credenciales se PROPAGAN al llamador.
+    # Main call: network/credential errors PROPAGATE to the caller.
     raw_text = client.chat(sys_prompt, user_prompt, image_urls, response_format=rf)
 
     codes = []
@@ -167,33 +167,32 @@ def _review(object_type, conversation, image_urls, history, requirements, client
         except json.JSONDecodeError:
             strict = user_prompt + ("\n\nIMPORTANT: respond with ONLY a valid JSON object, "
                                     "no prose, and escape any inner quotes.")
-            # Este reintento también puede fallar por red/credenciales, no solo por JSON
-            # inválido — ese caso debe propagarse igual que la llamada principal de
-            # arriba, no tratarse como "salida del modelo inválida" (ver el except
-            # RuntimeError explícito más abajo; BUG-16 en QA_AUDIT_REPORT.md).
+            # This retry can also fail on network/credentials, not just invalid JSON —
+            # that case must propagate like the main call above, not be treated as
+            # invalid model output (see the explicit `except RuntimeError` below).
             parsed = _parse_json(client.chat(sys_prompt, strict, image_urls, response_format=rf))
         fields = schema.validate(parsed, object_type, provided_ids)
         raw_status = fields["claim_status"]
-        # El modelo respondió JSON pero omitió la clave de decisión principal.
+        # The model returned JSON but omitted the main decision key.
         if not (isinstance(parsed, dict) and "claim_status" in parsed):
             codes.append("OUTPUT_INCOMPLETE")
             fields["risk_flags"] = schema.merge_flags(fields.get("risk_flags", "none"),
                                                       ["manual_review_required"])
     except RuntimeError:
-        # Errores de red/credenciales del proveedor: se propagan, nunca se degradan.
+        # Provider network/credential errors: propagate, never degrade.
         raise
-    except Exception as e:   # salida del modelo inválida -> degradación segura
-        log.warning("Salida del modelo inválida: %s", e)
+    except Exception as e:   # invalid model output -> safe degradation
+        log.warning("Invalid model output: %s", e)
         fields = schema.validate({}, object_type, provided_ids)
         fields["claim_status"] = "not_enough_information"
         fields["claim_status_justification"] = "Error while processing the claim."
         fields["risk_flags"] = "manual_review_required"
         codes.append("MODEL_ERROR")
 
-    # Capa determinista: fusiona flags del guardia + reglas de consistencia (nunca auto-aprueba).
+    # Deterministic layer: merges guard flags + consistency rules (never auto-approves).
     fields = schema.enforce_consistency(fields, guard_result, provided_ids, audit=codes)
     if not codes:
         codes.append("CLEAN")
-    log.info("Claim analizado: raw=%s final=%s codes=%s",
+    log.info("Claim analyzed: raw=%s final=%s codes=%s",
              raw_status, fields.get("claim_status"), codes)
     return _to_db_fields(fields)

@@ -1,7 +1,6 @@
-"""Regresión para BUG-04: GET/PATCH/DELETE /clients/{id} sin scoping por rol (IDOR).
-
-Antes del fix, `_get_client_orm` no comparaba nada contra `current_user` — cualquier
-usuario autenticado podía leer/editar/desactivar el cliente de cualquier agente.
+"""Authorization regression tests for clients: GET/PATCH/DELETE /clients/{id} must be
+role-scoped (IDOR). `_get_client_orm` must check against `current_user`, so an
+authenticated user cannot read/edit/deactivate another agent's client.
 """
 
 from tests.conftest import auth_headers, make_agent, make_client, make_supervisor, make_user
@@ -95,7 +94,7 @@ def test_admin_can_access_any_client(client, db_session):
 
 
 def test_client_update_can_no_longer_reassign_agent(client, db_session):
-    """BUG-04, parte 2: `agent_id` ya no es un campo editable vía PATCH genérico."""
+    """`agent_id` is not an editable field through the generic PATCH."""
     supervisor = make_supervisor(db_session)
     agent = make_agent(db_session, supervisor)
     other_agent = make_agent(db_session, supervisor)
@@ -107,6 +106,6 @@ def test_client_update_can_no_longer_reassign_agent(client, db_session):
         json={"agent_id": other_agent.id},
         headers=auth_headers(user),
     )
-    assert resp.status_code == 200  # el campo desconocido se ignora, no rompe la petición
+    assert resp.status_code == 200  # the unknown field is ignored, it does not break the request
     db_session.refresh(own_client)
-    assert own_client.agent_id == agent.id  # nunca se reasignó
+    assert own_client.agent_id == agent.id  # never reassigned

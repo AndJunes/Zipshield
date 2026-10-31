@@ -6,21 +6,21 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class PolicyType(str, Enum):
-    # Reconciliado con ClaimObject (car/laptop/package). El label "Automóvil" se muestra en la UI.
+    # Reconciled with ClaimObject (car/laptop/package). The "Automóvil" label is shown in the UI.
     car = "car"
     laptop = "laptop"
     package = "package"
 
 
 class PolicyStatus(str, Enum):
-    quote = "quote"               # cotizada, sin cobertura
-    underwriting = "underwriting"  # en suscripción
-    pending_info = "pending_info"  # en suscripción, esperando información del asegurado
-    in_force = "in_force"         # vigente (canónico para reclamos)
-    pending_cancel = "pending_cancel"  # en mora / período de gracia
-    cancelled = "cancelled"       # cancelada anticipadamente
-    expired = "expired"           # venció sin renovar
-    declined = "declined"         # rechazada en suscripción (terminal)
+    quote = "quote"               # quoted, no coverage yet
+    underwriting = "underwriting"  # in underwriting
+    pending_info = "pending_info"  # in underwriting, waiting on insured's information
+    in_force = "in_force"         # active (canonical for claims)
+    pending_cancel = "pending_cancel"  # past due / grace period
+    cancelled = "cancelled"       # cancelled early
+    expired = "expired"           # expired without renewal
+    declined = "declined"         # declined in underwriting (terminal)
 
 
 class CoverageRead(BaseModel):
@@ -34,7 +34,7 @@ class CoverageRead(BaseModel):
 
 
 class PolicyCreate(BaseModel):
-    """Al crear, el agente ingresa los datos del riesgo; la prima la calcula el backend."""
+    """On create, the agent enters the risk data; the backend computes the premium."""
 
     client_id: int
     type: PolicyType
@@ -60,11 +60,11 @@ class PolicyUpdate(BaseModel):
 
 
 class QuoteRequest(BaseModel):
-    """Cotización (sin guardar): el agente ingresa el riesgo, el backend devuelve el precio."""
+    """Quote (not saved): the agent enters the risk, the backend returns the price."""
 
     type: PolicyType
     sum_insured: Decimal
-    client_id: int | None = None   # si se pasa, el risk_factor sale del historial del cliente
+    client_id: int | None = None   # when given, risk_factor comes from the client's history
 
     @field_validator("sum_insured")
     @classmethod
@@ -110,6 +110,6 @@ class PolicyRead(BaseModel):
     deductible: Decimal
     net_premium: Decimal
     taxes_fees: Decimal
-    price: Decimal               # prima total
+    price: Decimal               # total premium
     coverage: str | None = None
     coverages: list[CoverageRead] = []

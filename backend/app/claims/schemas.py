@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 def _reject_future_date_of_loss(value: date | None) -> date | None:
     if value is not None and value > date.today():
-        raise ValueError("date_of_loss no puede ser una fecha futura")
+        raise ValueError("date_of_loss cannot be a future date")
     return value
 
 
@@ -50,8 +50,8 @@ class ClaimBase(BaseModel):
 
 
 class ClaimCreate(BaseModel):
-    """Al crear, solo se reciben los 4 datos de entrada. Los 10 campos de análisis
-    los genera la IA después (POST /claims/{id}/analyze)."""
+    """On create, only the 4 input fields are accepted. The 10 analysis fields are
+    generated later (POST /claims/{id}/analyze)."""
 
     user_id: str
     object: ClaimObject
@@ -64,10 +64,9 @@ class ClaimCreate(BaseModel):
 
 
 class ClaimUpdate(BaseModel):
-    """Solo campos de ENTRADA editables manualmente. Los 10 campos de análisis (ver
-    ANALYSIS_FIELDS en claims/service.py) se escriben exclusivamente vía
-    POST /claims/{id}/analyze — nunca a través de este PATCH genérico (ver BUG-02 en
-    QA_AUDIT_REPORT.md)."""
+    """Only manually editable INPUT fields. The 10 analysis fields (see ANALYSIS_FIELDS
+    in claims/service.py) are written exclusively via POST /claims/{id}/analyze — never
+    through this generic PATCH."""
 
     object: ClaimObject | None = None
     conversation: str | None = None

@@ -11,10 +11,10 @@ Each signature is tagged with the taxonomy technique class it maps to (overt / c
 / boundary). On detection the guard raises flags that survive the whole runtime and
 propagate to the output: `text_instruction_present` and `manual_review_required`.
 
-Note vs. the original challenge: OCR of text embedded inside images is NOT done here,
-because in Zipshield the images are remote URLs (not local files). That vector is covered
-by the VLM spotlighting (prompts.py) plus the deterministic consistency layer (schema.py).
-This layer only raises signals; safe degradation lives in `schema.enforce_consistency`.
+Note: OCR of text embedded inside images is NOT done here, because in Zipshield the
+images are remote URLs (not local files). That vector is covered by the VLM spotlighting
+(prompts.py) plus the deterministic consistency layer (schema.py). This layer only raises
+signals; safe degradation lives in `schema.enforce_consistency`.
 
 Quick self-test:  python -m app.llm.guard
 """
@@ -37,7 +37,7 @@ class GuardReport(TypedDict):
 
 # Signatures: (name, technique_class, regex). Bilingual base (EN/ES) plus a few FR/PT/DE
 # verbs for the most common injection intents. technique_class maps to the CrowdStrike
-# "Taxonomy of Prompt Injection Methods" classes used in the evaluation report.
+# "Taxonomy of Prompt Injection Methods" classes.
 _PATTERNS = [
     ("ignore_instructions", "overt",
      r"\b(ignore|ignora|ignorez|ignoriere|omite|olvida)\b[^.\n]{0,40}"

@@ -1,13 +1,12 @@
-"""Infraestructura de tests compartida.
+"""Shared test infrastructure.
 
-No existía ningún test en el backend antes de esto. Usa una base SQLite en un archivo
-temporal (no `:memory:`, para evitar el problema de "una DB en memoria distinta por
-conexión") en vez de la Postgres real de `DATABASE_URL`, para que la suite corra sin
-necesitar Docker/Postgres levantado.
+Uses a SQLite database in a temporary file (not `:memory:`, to avoid the "a different
+in-memory DB per connection" problem) instead of the real Postgres from `DATABASE_URL`,
+so the suite runs without Docker/Postgres up.
 
-`DATABASE_URL` se fija ANTES de importar cualquier módulo de `app`, porque
-`app.core.database` construye el engine a partir de `get_settings()` en el momento del
-import (y `app.main` corre `Base.metadata.create_all(bind=engine)` también al importar).
+`DATABASE_URL` is set BEFORE importing any `app` module, because `app.core.database`
+builds the engine from `get_settings()` at import time (and `app.main` runs
+`Base.metadata.create_all(bind=engine)` on import too).
 """
 
 import os
@@ -38,11 +37,11 @@ from app.supervisors.models import Supervisor
 from app.policies.models import Policy
 from app.claims.models import ClaimCase
 
-# El driver `pysqlite` maneja su propio BEGIN/COMMIT por debajo de SQLAlchemy (autocommit
-# implícito de la stdlib), lo que rompe el patrón de "savepoint por test" de `db_session`
-# de abajo: un `session.commit()` de la app terminaba comprometiendo la transacción real
-# en vez de solo el savepoint, y el rollback final no deshacía nada. Es el workaround que
-# la propia documentación de SQLAlchemy recomienda para aislar transacciones con SQLite.
+# The `pysqlite` driver manages its own BEGIN/COMMIT underneath SQLAlchemy (the stdlib's
+# implicit autocommit), which breaks the "savepoint per test" pattern of `db_session`
+# below: a `session.commit()` from the app ended up committing the real transaction
+# instead of just the savepoint, and the final rollback undid nothing. This is the
+# workaround SQLAlchemy's own docs recommend for transaction isolation with SQLite.
 @event.listens_for(engine, "connect")
 def _sqlite_disable_pysqlite_autocommit(dbapi_connection, connection_record):
     dbapi_connection.isolation_level = None
@@ -55,8 +54,8 @@ def _sqlite_emit_explicit_begin(conn):
 
 @pytest.fixture()
 def db_session():
-    """Una sesión atada a una única conexión + savepoint: cualquier `commit()` que haga el
-    código de la app se queda en el savepoint, y al terminar el test se revierte todo."""
+    """A session bound to a single connection + savepoint: any `commit()` the app code
+    makes stays within the savepoint, and everything is rolled back when the test ends."""
     connection = engine.connect()
     outer_transaction = connection.begin()
     session = SessionLocal(bind=connection, join_transaction_mode="create_savepoint")
@@ -70,7 +69,7 @@ def db_session():
 
 @pytest.fixture()
 def client(db_session):
-    """TestClient con `get_db` sobreescrito para usar la sesión de test (misma transacción)."""
+    """TestClient with `get_db` overridden to use the test session (same transaction)."""
 
     def _override_get_db():
         yield db_session

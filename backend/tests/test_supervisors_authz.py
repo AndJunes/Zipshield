@@ -1,7 +1,7 @@
-"""Regresión para la parte de BUG-06 sobre supervisores: GET /supervisors/{id} no exigía
-ningún rol (un agente que ve 0 supervisores en el listado podía leer el detalle de
-cualquiera igual), y PATCH exigía rol pero no pertenencia (un supervisor podía editar a
-un supervisor par)."""
+"""Authorization regression tests for supervisors: GET /supervisors/{id} must require a
+role (an agent who sees 0 supervisors in the listing must not read anyone's detail
+anyway), and PATCH must require ownership, not just a role (a supervisor must not edit a
+peer supervisor)."""
 
 from tests.conftest import auth_headers, make_supervisor, make_user
 

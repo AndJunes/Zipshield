@@ -1,12 +1,10 @@
-"""Requisitos mínimos de evidencia por tipo de objeto.
+"""Minimum evidence requirements per object type.
 
-Portado de `dataset/evidence_requirements.csv` del reto de HackerRank. Es dato de
-REFERENCIA / política (no cambia por usuario), por eso vive como constante y no en la BD.
-Si más adelante quieres editarlo desde la UI, se puede promover a una tabla de Postgres
-con su propio seed (eso sería una fase posterior).
+This is REFERENCE / policy data (it does not vary per user), which is why it lives as a
+constant rather than in the DB. If it ever needs to be editable from the UI, it can be
+promoted to a Postgres table with its own seed.
 
-`requirements_for(obj)` devuelve los requisitos del objeto + los generales ("all"), igual
-que hacía la clase Context del reto.
+`requirements_for(obj)` returns the object's requirements plus the general ("all") ones.
 """
 
 EVIDENCE_REQUIREMENTS = {
@@ -44,6 +42,6 @@ EVIDENCE_REQUIREMENTS = {
 
 
 def requirements_for(claim_object):
-    """Requisitos del objeto + los generales ('all')."""
+    """Requirements for the object plus the general ('all') ones."""
     obj = str(claim_object).strip().lower()
     return EVIDENCE_REQUIREMENTS.get(obj, []) + EVIDENCE_REQUIREMENTS.get("all", [])

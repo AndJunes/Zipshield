@@ -1,5 +1,5 @@
-"""Regresión para BUG-01: /policies no tenía ninguna autorización — cualquier usuario
-autenticado podía ver/editar/cancelar cualquier póliza del sistema."""
+"""Authorization regression tests for policies: /policies must be authorized — an
+authenticated user must not see/edit/cancel arbitrary policies in the system."""
 
 from tests.conftest import auth_headers, make_agent, make_client, make_policy, make_supervisor, make_user
 
@@ -108,10 +108,10 @@ def test_admin_can_read_and_patch_any_policy(client, db_session):
     assert resp.status_code == 200
 
     resp = client.patch(
-        f"/policies/{policy.id}", json={"name": "Renombrada"}, headers=auth_headers(admin_user)
+        f"/policies/{policy.id}", json={"name": "Renamed"}, headers=auth_headers(admin_user)
     )
     assert resp.status_code == 200
-    assert resp.json()["name"] == "Renombrada"
+    assert resp.json()["name"] == "Renamed"
 
 
 def test_agent_cannot_read_events_of_another_agents_policy(client, db_session):

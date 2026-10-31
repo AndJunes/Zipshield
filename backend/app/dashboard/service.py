@@ -20,9 +20,9 @@ def _count(db: Session, model, condition=None) -> int:
 
 
 def dashboard_summary(db: Session) -> dict:
-    # BUG-15: antes de contar, sincroniza cualquier póliza `in_force`/`pending_cancel`
-    # cuya `expiration_date` ya pasó — si no, este resumen y `/policies/balance` pueden
-    # reportar cosas distintas para la misma póliza real.
+    # Before counting, sync any `in_force`/`pending_cancel` policy whose
+    # `expiration_date` already passed — otherwise this summary and
+    # `/policies/balance` can report different things for the same real policy.
     sync_expired_policies(db)
 
     # People counts
@@ -32,9 +32,9 @@ def dashboard_summary(db: Session) -> dict:
     active_clients = _count(db, Client, Client.status == "active")
     inactive_clients = _count(db, Client, Client.status == "inactive")
 
-    # Policy counts. "in_force" es el único status canónico de "vigente" (ver
-    # PolicyStatus en policies/schemas.py) — "active" nunca existe, así que antes de
-    # este fix `active_policies`/`active_policies_value` siempre daban 0.
+    # Policy counts. "in_force" is the only canonical "active" status (see
+    # PolicyStatus in policies/schemas.py) — "active" never exists, so filtering on
+    # it would always yield 0.
     total_policies = _count(db, Policy)
     active_policies = _count(db, Policy, Policy.status == "in_force")
     expired_policies = _count(db, Policy, Policy.status == "expired")

@@ -1,8 +1,8 @@
-"""Cliente OpenRouter sobre httpx (ya viene con FastAPI, no añade dependencias).
+"""OpenRouter client built on httpx (already shipped with FastAPI, no extra dependencies).
 
-A diferencia del reto, NO usa caché en disco ni concurrencia: en el backend el resultado
-se persiste en la tabla `claims`. Mantiene la lógica de reintentos con backoff exponencial
-y el fallback de quitar `response_format` si el proveedor lo rechaza (400/422).
+No disk cache or concurrency: the backend persists the result in the `claims` table.
+Retries with exponential backoff, and drops `response_format` and retries once if the
+provider rejects it (400/422).
 """
 
 import time
@@ -24,11 +24,11 @@ class OpenRouterClient:
         self.max_retries = s.llm_max_retries
 
     def chat(self, system: str, user_text: str, image_urls, response_format=None) -> str:
-        """Devuelve el texto de la respuesta del modelo. Lanza RuntimeError si falla."""
+        """Return the model's response text. Raises RuntimeError on failure."""
         if not self.api_key:
             raise RuntimeError(
-                "Falta OPENROUTER_API_KEY. Configúrala en backend/.env "
-                "(puedes reutilizar tu clave de OpenRouter)."
+                "OPENROUTER_API_KEY is missing. Set it in backend/.env "
+                "(you can reuse your OpenRouter key)."
             )
 
         content = [{"type": "text", "text": user_text}]
@@ -66,19 +66,18 @@ class OpenRouterClient:
                         data = r.json()
                         return data["choices"][0]["message"]["content"]
                     except (ValueError, KeyError, IndexError, TypeError) as exc:
-                        # 200 con un cuerpo que no tiene la forma esperada (p. ej. un
-                        # payload de moderación sin "choices"): mismo contrato de error
-                        # que un fallo de red, para que el caller siempre reciba 502 y
-                        # nunca un 500 crudo (ver BUG-16 en QA_AUDIT_REPORT.md).
+                        # 200 with an unexpected body shape (e.g. a moderation payload
+                        # without "choices"): same error contract as a network failure,
+                        # so the caller always gets a 502 and never a raw 500.
                         raise RuntimeError(
-                            f"OpenRouter respondió 200 con un cuerpo inesperado: {exc}"
+                            f"OpenRouter returned 200 with an unexpected body: {exc}"
                         ) from exc
-                # Si el proveedor rechaza response_format, lo quitamos y reintentamos una vez.
+                # If the provider rejects response_format, drop it and retry once.
                 if r.status_code in (400, 422) and "response_format" in payload and not dropped_rf:
                     payload = {k: v for k, v in payload.items() if k != "response_format"}
                     dropped_rf = True
                     continue
-                if r.status_code in (429, 500, 502, 503):       # transitorio -> reintentar
+                if r.status_code in (429, 500, 502, 503):       # transient -> retry
                     last = f"HTTP {r.status_code}"
                     time.sleep(2 ** attempt)
                     continue
@@ -86,4 +85,4 @@ class OpenRouterClient:
             except httpx.RequestError as e:
                 last = str(e)
                 time.sleep(2 ** attempt)
-        raise RuntimeError(f"OpenRouter falló tras {self.max_retries} intentos: {last}")
+        raise RuntimeError(f"OpenRouter failed after {self.max_retries} attempts: {last}")

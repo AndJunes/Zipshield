@@ -1,10 +1,10 @@
-"""Regresión para BUG-14: los listados de `clients`, `agents`, `supervisors` y `policies`
-ejecutaban una consulta adicional POR FILA (historial de reclamos, conteo de
-clientes/agentes, coberturas de póliza) en vez de una sola consulta agregada.
+"""N+1 regression tests: the `clients`, `agents`, `supervisors` and `policies` listings
+must not run one extra query PER ROW (claim history, client/agent counts, policy
+coverages) instead of a single aggregated query.
 
-En vez de fijar un número mágico de queries, cada test compara el conteo con pocas filas
-contra el conteo con muchas más — si hubiera N+1, la diferencia escalaría con el número de
-filas nuevas; con la agregación en batch, la diferencia debe ser prácticamente nula.
+Rather than pinning a magic query count, each test compares the count with few rows
+against the count with many more — with N+1 the difference would scale with the number
+of new rows; with batched aggregation it must be practically zero.
 """
 
 from contextlib import contextmanager
