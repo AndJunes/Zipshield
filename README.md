@@ -62,10 +62,22 @@ Each subproject has its own README with setup details, environment variables, an
 
 ## Quick start
 
+### Docker (the whole stack)
+
+```bash
+docker compose up -d --build
+docker compose exec api python -m scripts.seed   # first run only
+```
+
+Frontend at `http://localhost:8080`, API at `http://localhost:8000` (docs at `/docs`).
+Migrations run automatically when the API container starts.
+
+### Local development
+
 ```bash
 # Backend
+docker compose up -d postgres   # from the repo root
 cd backend
-docker compose up -d postgres
 uv sync
 cp .env.example .env              # add your OPENROUTER_API_KEY if you want to try the AI review
 uv run alembic upgrade head
