@@ -38,6 +38,26 @@ OpenRouter key to see the real pipeline.
 **Dashboard**
 - An aggregated view scoped by role: totals for clients, agents, policies and claims, net result, resolution rate, and a ranking of agents and supervisors by contribution.
 
+## How a claim flows
+
+```mermaid
+flowchart LR
+    A["Agent files a claim<br>(policy must be in force<br>on the date of loss)"] --> B["FastAPI<br>RBAC + ownership checks<br>claimant derived from the policy"]
+    B --> DB[("PostgreSQL<br>Alembic migrations")]
+    B --> C["Injection guard<br>normalizes homoglyphs/leetspeak,<br>scans the claimant's text"]
+    C --> D["Vision model (OpenRouter)<br>photos + history + coverage,<br>data separated from instructions"]
+    D --> E["Output validation<br>strict schema +<br>consistency rules"]
+    E -->|consistent| F["Verdict + justification<br>persisted on the claim"]
+    E -->|inconsistent| G["Safe degradation:<br>flagged for manual review"]
+    F --> H["Human decides.<br>The AI never approves<br>a claim on its own"]
+    G --> H
+```
+
+The analysis runs in the background: the API answers `202` with
+`analysis_status: pending` and the frontend polls until it settles
+(`done` / `failed`). The public demo short-circuits the model call with
+canned, labeled reviews.
+
 ## Screenshots
 
 | Claim reviewed by AI | Client portfolio |
