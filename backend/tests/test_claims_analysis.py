@@ -101,3 +101,17 @@ def test_a_failed_analysis_can_be_retried(
     assert resp.status_code == 202
     after = client.get(f"/claims/{claim.id}", headers=auth_headers(user)).json()
     assert after["analysis_status"] == "done"
+
+
+def test_demo_mode_serves_a_canned_analysis_in_one_round_trip(client, db_session, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "demo_mode", True)
+    user, claim = _actor_and_claim(db_session)
+
+    resp = client.post(f"/claims/{claim.id}/analyze", headers=auth_headers(user))
+    assert resp.status_code == 202
+    body = resp.json()
+    assert body["analysis_status"] == "done"
+    assert body["claim_status"] == "supported"
+    assert "Demo mode" in body["claim_status_justification"]

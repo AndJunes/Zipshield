@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.claims import service
 from app.claims.schemas import ClaimCreate, ClaimRead, ClaimUpdate
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 
@@ -65,6 +66,10 @@ def analyze(
             status_code=status.HTTP_409_CONFLICT,
             detail="An analysis is already running for this claim",
         )
+    if get_settings().demo_mode:
+        # Canned reviews are instant, so the demo answers "done" in one round trip
+        # (and serverless deployments don't need post-response work).
+        return service.run_demo_analysis(db, claim)
     claim = service.start_analysis(db, claim)
     background_tasks.add_task(service.run_analysis, claim.id)
     return claim

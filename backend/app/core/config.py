@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     llm_request_timeout: int = 120
     llm_max_retries: int = 4
     llm_use_json_schema: bool = True
+    # Public demo: serve canned analyses instead of calling OpenRouter, so no
+    # API key ships with the deployment.
+    demo_mode: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:

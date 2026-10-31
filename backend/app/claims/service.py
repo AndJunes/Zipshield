@@ -11,6 +11,7 @@ from app.clients.models import Client
 from app.core.database import SessionLocal
 from app.core.exceptions import ConflictError, NotFoundError
 from app.llm import service as llm_service
+from app.llm.demo import demo_analysis
 from app.policies.service import can_file_claim, get_policy
 
 log = logging.getLogger(__name__)
@@ -89,6 +90,11 @@ ANALYSIS_FIELDS = frozenset(
         "severity",
     }
 )
+
+
+def run_demo_analysis(db: Session, claim: ClaimCase) -> ClaimCase:
+    claim.analysis_status = "done"
+    return apply_analysis(db, claim, demo_analysis(claim))
 
 
 def start_analysis(db: Session, claim: ClaimCase) -> ClaimCase:
