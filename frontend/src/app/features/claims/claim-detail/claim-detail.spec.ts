@@ -25,6 +25,7 @@ function baseClaim(overrides: Partial<ClaimCase> = {}): ClaimCase {
     supportingImageIds: ['img_1'],
     validImage: true,
     severity: 'low',
+    analysisStatus: 'done',
     policyId: null,
     dateOfLoss: null,
     ...overrides,

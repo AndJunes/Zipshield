@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
@@ -6,7 +6,6 @@ from app.claims import service
 from app.claims.schemas import ClaimCreate, ClaimRead, ClaimUpdate
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.llm import service as llm_service
 
 router = APIRouter(prefix="/claims", tags=["Claims"])
 
@@ -47,23 +46,27 @@ def update(
     return service.update_claim(db, claim_id, changes, current_user)
 
 
-@router.post("/{claim_id}/analyze", response_model=ClaimRead)
+@router.post(
+    "/{claim_id}/analyze", response_model=ClaimRead, status_code=status.HTTP_202_ACCEPTED
+)
 def analyze(
     claim_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Analyze the claim with the LLM and persist the 10 result fields.
+    """Queue the AI analysis and answer right away with analysis_status="pending".
 
-    If the LLM is unavailable (missing API key or network failure), respond 502 and
-    leave the claim untouched.
+    The worst-case LLM call (retries included) takes minutes, so it never runs on
+    the request path: the result lands on the claim and the client polls
+    analysis_status until it leaves "pending" (done or failed).
     """
     claim = service.get_claim(db, claim_id, current_user)
-    try:
-        fields = llm_service.analyze_claim(db, claim)
-    except RuntimeError as exc:
+    if claim.analysis_status == "pending":
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Could not complete the analysis: {exc}",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An analysis is already running for this claim",
         )
-    return service.apply_analysis(db, claim, fields)
+    claim = service.start_analysis(db, claim)
+    background_tasks.add_task(service.run_analysis, claim.id)
+    return claim

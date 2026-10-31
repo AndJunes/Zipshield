@@ -31,6 +31,10 @@ class ClaimCase(Base):
         ForeignKey("policies.id"), index=True, default=None
     )
     date_of_loss: Mapped[date | None] = mapped_column(Date, default=None)
+    # Lifecycle of the background AI analysis: none -> pending -> done | failed.
+    analysis_status: Mapped[str] = mapped_column(
+        String(10), default="none", server_default="none"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

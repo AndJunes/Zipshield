@@ -1,6 +1,7 @@
 export type ClaimObject = 'car' | 'laptop' | 'package';
 export type ClaimCaseStatus = 'supported' | 'contradicted' | 'not_enough_information';
 export type ClaimSeverity = 'low' | 'medium' | 'high' | 'unknown' | 'none';
+export type ClaimAnalysisStatus = 'none' | 'pending' | 'done' | 'failed';
 
 export interface ClaimChatTurn {
   speaker: string;
@@ -23,6 +24,7 @@ export interface ClaimCase {
   supportingImageIds: string[];
   validImage: boolean;
   severity: ClaimSeverity;
+  analysisStatus: ClaimAnalysisStatus;
   policyId?: number | null;
   dateOfLoss?: string | null;
 }

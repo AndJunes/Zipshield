@@ -16,6 +16,7 @@ export interface ApiClaim {
   supporting_image_ids: string[];
   valid_image: boolean;
   severity: string;
+  analysis_status: 'none' | 'pending' | 'done' | 'failed';
   created_at: string;
   policy_id: number | null;
   date_of_loss: string | null;
@@ -62,6 +63,7 @@ export function toClaimCase(api: ApiClaim): ClaimCase {
     supportingImageIds: api.supporting_image_ids ?? [],
     validImage: api.valid_image,
     severity: api.severity as ClaimCase['severity'],
+    analysisStatus: api.analysis_status ?? 'none',
     policyId: api.policy_id ?? null,
     dateOfLoss: api.date_of_loss ?? null,
   };

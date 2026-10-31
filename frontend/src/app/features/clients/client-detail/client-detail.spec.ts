@@ -51,6 +51,7 @@ function fakeClaim(userId: string): ClaimCase {
     supportingImageIds: [],
     validImage: true,
     severity: 'unknown',
+    analysisStatus: 'none',
     policyId: null,
     dateOfLoss: null,
   };
