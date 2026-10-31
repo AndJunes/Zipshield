@@ -79,7 +79,14 @@ def test_review_propagates_runtime_error_from_the_retry_call_instead_of_degradin
     assert fake_client.calls == 2  # the strict-mode retry was attempted before failing
 
 
-def test_analyze_claim_endpoint_returns_502_not_500_on_malformed_llm_response(client, db_session, monkeypatch):
+def test_malformed_llm_response_ends_as_failed_never_a_500(client, db_session, monkeypatch):
+    """Full path through the real analyze_claim with a fake transport: a malformed 200
+    from the provider must end as analysis_status="failed", never as a raw 500."""
+    from tests.test_claims_analysis import _SharedSession
+
+    monkeypatch.setattr(
+        "app.claims.service.SessionLocal", lambda: _SharedSession(db_session)
+    )
     monkeypatch.setattr(get_settings(), "openrouter_api_key", "test-key")
     monkeypatch.setattr(
         "app.llm.client.httpx.post",
@@ -93,7 +100,8 @@ def test_analyze_claim_endpoint_returns_502_not_500_on_malformed_llm_response(cl
     user = make_user(db_session, role="agent", ref_id=agent.id)
 
     resp = client.post(f"/claims/{claim.id}/analyze", headers=auth_headers(user))
-    assert resp.status_code == 502
+    assert resp.status_code == 202
 
     db_session.refresh(claim)
+    assert claim.analysis_status == "failed"
     assert claim.claim_status == "not_enough_information"  # the claim is left untouched

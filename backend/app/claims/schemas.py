@@ -82,3 +82,4 @@ class ClaimRead(ClaimBase):
 
     id: int
     created_at: datetime
+    analysis_status: str = "none"

@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
@@ -5,8 +7,12 @@ from app.agents.models import Agent
 from app.claims.models import ClaimCase
 from app.claims.schemas import ClaimCreate, ClaimUpdate
 from app.clients.models import Client
+from app.core.database import SessionLocal
 from app.core.exceptions import ConflictError, NotFoundError
+from app.llm import service as llm_service
 from app.policies.service import can_file_claim, get_policy
+
+log = logging.getLogger(__name__)
 
 
 def _scope_by_role(query, db: Session, current_user: User):
@@ -86,6 +92,34 @@ ANALYSIS_FIELDS = frozenset(
         "severity",
     }
 )
+
+
+def start_analysis(db: Session, claim: ClaimCase) -> ClaimCase:
+    claim.analysis_status = "pending"
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+
+def run_analysis(claim_id: int) -> None:
+    """Background entry point: owns its session and never raises — the outcome
+    lands in analysis_status, which the frontend polls."""
+    db = SessionLocal()
+    try:
+        claim = db.get(ClaimCase, claim_id)
+        if claim is None:
+            return
+        try:
+            fields = llm_service.analyze_claim(db, claim)
+        except Exception as exc:
+            log.warning("Analysis of claim %d failed: %s", claim_id, exc)
+            claim.analysis_status = "failed"
+            db.commit()
+            return
+        claim.analysis_status = "done"
+        apply_analysis(db, claim, fields)
+    finally:
+        db.close()
 
 
 def apply_analysis(db: Session, claim: ClaimCase, fields: dict) -> ClaimCase:
