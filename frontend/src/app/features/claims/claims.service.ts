@@ -13,8 +13,8 @@ import {
 
 export type ClaimInput = Pick<
   ClaimCase,
-  'userId' | 'object' | 'conversation' | 'imageUrls' | 'policyId' | 'dateOfLoss'
->;
+  'object' | 'conversation' | 'imageUrls' | 'dateOfLoss'
+> & { policyId: number };
 
 @Injectable({ providedIn: 'root' })
 export class ClaimsService {
