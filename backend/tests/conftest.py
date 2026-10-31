@@ -5,8 +5,10 @@ in-memory DB per connection" problem) instead of the real Postgres from `DATABAS
 so the suite runs without Docker/Postgres up.
 
 `DATABASE_URL` is set BEFORE importing any `app` module, because `app.core.database`
-builds the engine from `get_settings()` at import time (and `app.main` runs
-`Base.metadata.create_all(bind=engine)` on import too).
+builds the engine from `get_settings()` at import time.
+
+The real schema is owned by Alembic, but the migration chain contains
+Postgres-only DDL, so the test database is built with `create_all` instead.
 """
 
 import os
@@ -26,7 +28,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event
 
-from app.core.database import SessionLocal, engine, get_db
+from app.core.database import Base, SessionLocal, engine, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
 
@@ -36,6 +38,10 @@ from app.clients.models import Client
 from app.supervisors.models import Supervisor
 from app.policies.models import Policy
 from app.claims.models import ClaimCase
+
+# Build the test schema directly: Alembic owns the real one, but the migration
+# chain contains Postgres-only DDL and this suite runs on SQLite.
+Base.metadata.create_all(bind=engine)
 
 # The `pysqlite` driver manages its own BEGIN/COMMIT underneath SQLAlchemy (the stdlib's
 # implicit autocommit), which breaks the "savepoint per test" pattern of `db_session`

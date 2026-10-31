@@ -3,16 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
-from app.core.database import Base, engine
 from app.core.exceptions import ConflictError, NotFoundError
-
-# Import the models so SQLAlchemy registers them before creating the tables.
-from app.auth import models as _auth                # noqa: F401
-from app.supervisors import models as _supervisors  # noqa: F401
-from app.agents import models as _agents            # noqa: F401
-from app.clients import models as _clients          # noqa: F401
-from app.policies import models as _policies        # noqa: F401
-from app.claims import models as _claims            # noqa: F401
 
 from app.auth.routes import router as auth_router
 from app.supervisors.routes import router as supervisors_router
@@ -22,9 +13,7 @@ from app.policies.routes import router as policies_router
 from app.claims.routes import router as claims_router
 from app.dashboard.routes import router as dashboard_router
 
-# Create the tables in the database if they do not exist yet.
-Base.metadata.create_all(bind=engine)
-
+# The schema is owned by Alembic: run `alembic upgrade head` before starting.
 app = FastAPI(title="Zipshield API")
 
 app.add_middleware(
