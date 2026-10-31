@@ -58,4 +58,4 @@ app.include_router(dashboard_router)
 
 @app.get("/")
 def root():
-    return {"message": "Policy API is running"}
+    return {"name": "Zipshield API", "docs": "/docs"}
