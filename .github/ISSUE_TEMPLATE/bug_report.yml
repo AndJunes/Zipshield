@@ -1,0 +1,22 @@
+name: Bug report
+description: Something doesn't behave the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Steps, endpoint or screen involved, and what you got back.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Where
+      placeholder: live demo / docker compose / local dev (Python 3.13, Node 22)
