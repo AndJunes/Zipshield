@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://zipshield-api.vercel.app/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

@@ -8,6 +8,11 @@ An insurance claims platform with automatic AI review and role based access cont
 
 A FastAPI backend and an Angular 22 frontend that model the actual workflow of an insurance company. Agents onboard clients and policies, clients file claims, and a vision model reviews the photo evidence on each claim before a human has to look at it.
 
+**Live demo: [zipshield.vercel.app](https://zipshield.vercel.app)** — the login screen
+has one-click chips for every demo account. The AI review runs in demo mode there
+(canned analyses, clearly labeled), so no model key is exposed; run it locally with an
+OpenRouter key to see the real pipeline.
+
 ![Admin dashboard](docs/screenshots/dashboard-admin.png)
 
 ## What it does

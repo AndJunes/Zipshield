@@ -1,4 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8000',
+  // Same-origin path: Vercel rewrites it to the API project, nginx proxies it
+  // in Docker. No CORS either way.
+  apiUrl: '/api',
 };
