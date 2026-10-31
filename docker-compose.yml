@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zipshield-postgres
+    environment:
+      POSTGRES_USER: zipshield
+      POSTGRES_PASSWORD: zipshield
+      POSTGRES_DB: zipshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - zipshield_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zipshield -d zipshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: zipshield-api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://zipshield:zipshield@postgres:5432/zipshield
+      CORS_ORIGINS: http://localhost:8080,http://localhost:4200
+      # Development-only stack: the production check rejects these defaults.
+      ENVIRONMENT: development
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: zipshield-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  zipshield_pgdata:

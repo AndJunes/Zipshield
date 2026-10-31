@@ -10,8 +10,8 @@ Requirements: Python 3.13+, [uv](https://docs.astral.sh/uv/) and Docker (for
 Postgres).
 
 ```bash
-# 1. Start Postgres
-docker compose up -d postgres
+# 1. Start Postgres (the compose file lives at the repo root)
+docker compose -f ../docker-compose.yml up -d postgres
 
 # 2. Install dependencies
 uv sync
