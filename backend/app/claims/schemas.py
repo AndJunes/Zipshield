@@ -50,14 +50,14 @@ class ClaimBase(BaseModel):
 
 
 class ClaimCreate(BaseModel):
-    """On create, only the 4 input fields are accepted. The 10 analysis fields are
-    generated later (POST /claims/{id}/analyze)."""
+    """On create, only the input fields are accepted; the claimant is derived
+    server-side from the policy's client, never from the body. The 10 analysis
+    fields are generated later (POST /claims/{id}/analyze)."""
 
-    user_id: str
     object: ClaimObject
     conversation: str
     image_urls: list[str] = []
-    policy_id: int | None = None
+    policy_id: int
     date_of_loss: date | None = None
 
     _validate_date_of_loss = field_validator("date_of_loss")(_reject_future_date_of_loss)

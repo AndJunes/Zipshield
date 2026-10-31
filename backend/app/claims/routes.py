@@ -34,7 +34,7 @@ def create(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return service.create_claim(db, data)
+    return service.create_claim(db, data, current_user)
 
 
 @router.patch("/{claim_id}", response_model=ClaimRead)
