@@ -46,9 +46,7 @@ def update(
     return service.update_claim(db, claim_id, changes, current_user)
 
 
-@router.post(
-    "/{claim_id}/analyze", response_model=ClaimRead, status_code=status.HTTP_202_ACCEPTED
-)
+@router.post("/{claim_id}/analyze", response_model=ClaimRead, status_code=status.HTTP_202_ACCEPTED)
 def analyze(
     claim_id: int,
     background_tasks: BackgroundTasks,

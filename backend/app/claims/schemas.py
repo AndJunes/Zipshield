@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -10,19 +10,19 @@ def _reject_future_date_of_loss(value: date | None) -> date | None:
     return value
 
 
-class ClaimObject(str, Enum):
+class ClaimObject(StrEnum):
     car = "car"
     laptop = "laptop"
     package = "package"
 
 
-class ClaimStatus(str, Enum):
+class ClaimStatus(StrEnum):
     supported = "supported"
     contradicted = "contradicted"
     not_enough_information = "not_enough_information"
 
 
-class ClaimSeverity(str, Enum):
+class ClaimSeverity(StrEnum):
     high = "high"
     medium = "medium"
     low = "low"

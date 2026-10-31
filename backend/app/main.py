@@ -2,16 +2,15 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.agents.routes import router as agents_router
+from app.auth.routes import router as auth_router
+from app.claims.routes import router as claims_router
+from app.clients.routes import router as clients_router
 from app.core.config import get_settings
 from app.core.exceptions import ConflictError, NotFoundError
-
-from app.auth.routes import router as auth_router
-from app.supervisors.routes import router as supervisors_router
-from app.agents.routes import router as agents_router
-from app.clients.routes import router as clients_router
-from app.policies.routes import router as policies_router
-from app.claims.routes import router as claims_router
 from app.dashboard.routes import router as dashboard_router
+from app.policies.routes import router as policies_router
+from app.supervisors.routes import router as supervisors_router
 
 # The schema is owned by Alembic: run `alembic upgrade head` before starting.
 app = FastAPI(title="Zipshield API")

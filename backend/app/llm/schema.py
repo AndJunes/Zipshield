@@ -34,34 +34,90 @@ MODEL_FIELDS = [c for c in OUTPUT_COLUMNS if c not in PASSTHROUGH]
 CLAIM_STATUS = ["supported", "contradicted", "not_enough_information"]
 
 ISSUE_TYPE = [
-    "dent", "scratch", "crack", "glass_shatter", "broken_part", "missing_part",
-    "torn_packaging", "crushed_packaging", "water_damage", "stain", "none", "unknown",
+    "dent",
+    "scratch",
+    "crack",
+    "glass_shatter",
+    "broken_part",
+    "missing_part",
+    "torn_packaging",
+    "crushed_packaging",
+    "water_damage",
+    "stain",
+    "none",
+    "unknown",
 ]
 
 OBJECT_PARTS = {
-    "car": ["front_bumper", "rear_bumper", "door", "hood", "windshield", "side_mirror",
-            "headlight", "taillight", "fender", "quarter_panel", "body", "unknown"],
-    "laptop": ["screen", "keyboard", "trackpad", "hinge", "lid", "corner", "port",
-               "base", "body", "unknown"],
-    "package": ["box", "package_corner", "package_side", "seal", "label", "contents",
-                "item", "unknown"],
+    "car": [
+        "front_bumper",
+        "rear_bumper",
+        "door",
+        "hood",
+        "windshield",
+        "side_mirror",
+        "headlight",
+        "taillight",
+        "fender",
+        "quarter_panel",
+        "body",
+        "unknown",
+    ],
+    "laptop": [
+        "screen",
+        "keyboard",
+        "trackpad",
+        "hinge",
+        "lid",
+        "corner",
+        "port",
+        "base",
+        "body",
+        "unknown",
+    ],
+    "package": [
+        "box",
+        "package_corner",
+        "package_side",
+        "seal",
+        "label",
+        "contents",
+        "item",
+        "unknown",
+    ],
 }
 
 RISK_FLAGS = [
-    "none", "blurry_image", "cropped_or_obstructed", "low_light_or_glare", "wrong_angle",
-    "wrong_object", "wrong_object_part", "damage_not_visible", "claim_mismatch",
-    "possible_manipulation", "non_original_image", "text_instruction_present",
-    "user_history_risk", "manual_review_required",
+    "none",
+    "blurry_image",
+    "cropped_or_obstructed",
+    "low_light_or_glare",
+    "wrong_angle",
+    "wrong_object",
+    "wrong_object_part",
+    "damage_not_visible",
+    "claim_mismatch",
+    "possible_manipulation",
+    "non_original_image",
+    "text_instruction_present",
+    "user_history_risk",
+    "manual_review_required",
 ]
 
 SEVERITY = ["none", "low", "medium", "high", "unknown"]
 
 # Machine-readable reason codes recorded in the audit/log.
 REASON_CODES = [
-    "CLEAN", "INJECTION_DETECTED", "SUPPORTED_WITHOUT_EVIDENCE",
-    "CONTRADICTED_WITHOUT_EVIDENCE", "HIGH_SEVERITY_NO_DAMAGE",
-    "STATUS_EVIDENCE_MISMATCH", "OUTPUT_MANIPULATION_ECHO",
-    "OUTPUT_INCOMPLETE", "NO_USABLE_IMAGES", "MODEL_ERROR",
+    "CLEAN",
+    "INJECTION_DETECTED",
+    "SUPPORTED_WITHOUT_EVIDENCE",
+    "CONTRADICTED_WITHOUT_EVIDENCE",
+    "HIGH_SEVERITY_NO_DAMAGE",
+    "STATUS_EVIDENCE_MISMATCH",
+    "OUTPUT_MANIPULATION_ECHO",
+    "OUTPUT_INCOMPLETE",
+    "NO_USABLE_IMAGES",
+    "MODEL_ERROR",
 ]
 
 
@@ -84,9 +140,12 @@ def output_response_format():
                 "properties": {
                     "evidence_standard_met": {"type": "boolean"},
                     "evidence_standard_met_reason": s,
-                    "risk_flags": {"type": "array", "items": {"type": "string", "enum": RISK_FLAGS}},
+                    "risk_flags": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": RISK_FLAGS},
+                    },
                     "issue_type": {"type": "string", "enum": ISSUE_TYPE},
-                    "object_part": s,   # allowed set depends on claim_object; coerced in validate()
+                    "object_part": s,  # allowed set depends on claim_object; coerced in validate()
                     "claim_status": {"type": "string", "enum": CLAIM_STATUS},
                     "claim_status_justification": s,
                     "supporting_image_ids": {"type": "array", "items": {"type": "string"}},
@@ -122,8 +181,8 @@ def _as_list(value):
 
 def normalize_risk_flags(value):
     flags = [f.lower() for f in _as_list(value) if f.lower() in RISK_FLAGS]
-    flags = list(dict.fromkeys(flags))          # dedup, keep order
-    flags = [f for f in flags if f != "none"]   # 'none' only when alone
+    flags = list(dict.fromkeys(flags))  # dedup, keep order
+    flags = [f for f in flags if f != "none"]  # 'none' only when alone
     return ";".join(flags) if flags else "none"
 
 
@@ -143,11 +202,15 @@ def validate(raw, claim_object, provided_ids):
         "risk_flags": normalize_risk_flags(raw.get("risk_flags", "none")),
         "issue_type": _coerce(raw.get("issue_type", "unknown"), ISSUE_TYPE, "unknown"),
         "object_part": _coerce(raw.get("object_part", "unknown"), parts, "unknown"),
-        "claim_status": _coerce(raw.get("claim_status", "not_enough_information"),
-                                CLAIM_STATUS, "not_enough_information"),
+        "claim_status": _coerce(
+            raw.get("claim_status", "not_enough_information"),
+            CLAIM_STATUS,
+            "not_enough_information",
+        ),
         "claim_status_justification": str(raw.get("claim_status_justification", "")).strip(),
         "supporting_image_ids": normalize_supporting_ids(
-            raw.get("supporting_image_ids", "none"), provided_ids),
+            raw.get("supporting_image_ids", "none"), provided_ids
+        ),
         "valid_image": _as_bool_str(raw.get("valid_image", False)),
         "severity": _coerce(raw.get("severity", "unknown"), SEVERITY, "unknown"),
     }
@@ -159,6 +222,7 @@ def validate(raw, claim_object, provided_ids):
 
 # --- Deterministic safety layer: flag merge + consistency + safe fallback ---
 
+
 def merge_flags(*flag_sources):
     """Merge several risk_flags sources (';'/',' string or list) into a normalized string."""
     combined = []
@@ -167,7 +231,9 @@ def merge_flags(*flag_sources):
     return normalize_risk_flags(combined)
 
 
-_ECHO_RE = re.compile(r"as (requested|instructed)|per your instruction|as you (said|asked)", re.IGNORECASE)
+_ECHO_RE = re.compile(
+    r"as (requested|instructed)|per your instruction|as you (said|asked)", re.IGNORECASE
+)
 
 
 def enforce_consistency(fields, guard_result=None, provided_ids=None, audit=None):
@@ -217,8 +283,10 @@ def enforce_consistency(fields, guard_result=None, provided_ids=None, audit=None
         codes.append("HIGH_SEVERITY_NO_DAMAGE")
 
     # 4) A firm decision with evidence_standard_met=false is shaky -> manual review.
-    if fields.get("claim_status") in ("supported", "contradicted") and \
-            fields.get("evidence_standard_met") == "false":
+    if (
+        fields.get("claim_status") in ("supported", "contradicted")
+        and fields.get("evidence_standard_met") == "false"
+    ):
         extra_flags.append("manual_review_required")
         reasons.append("decision without evidence standard met")
         codes.append("STATUS_EVIDENCE_MISMATCH")
@@ -238,6 +306,6 @@ def enforce_consistency(fields, guard_result=None, provided_ids=None, audit=None
         fields["claim_status_justification"] = (just.strip() + note).strip()[:600]
 
     if isinstance(audit, list):
-        audit[:] = list(dict.fromkeys(audit))   # dedup in place
+        audit[:] = list(dict.fromkeys(audit))  # dedup in place
 
     return fields

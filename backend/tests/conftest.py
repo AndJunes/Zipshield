@@ -28,20 +28,20 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event
 
+from app.agents.models import Agent
+from app.auth.models import User
+from app.claims.models import ClaimCase
+from app.clients.models import Client
 from app.core.database import Base, SessionLocal, engine, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
-
-from app.auth.models import User
-from app.agents.models import Agent
-from app.clients.models import Client
-from app.supervisors.models import Supervisor
 from app.policies.models import Policy
-from app.claims.models import ClaimCase
+from app.supervisors.models import Supervisor
 
 # Build the test schema directly: Alembic owns the real one, but the migration
 # chain contains Postgres-only DDL and this suite runs on SQLite.
 Base.metadata.create_all(bind=engine)
+
 
 # The `pysqlite` driver manages its own BEGIN/COMMIT underneath SQLAlchemy (the stdlib's
 # implicit autocommit), which breaks the "savepoint per test" pattern of `db_session`
@@ -179,8 +179,9 @@ def make_claim(db_session, client_row: Client, **overrides) -> ClaimCase:
     return claim
 
 
-def make_user(db_session, *, role: str, ref_id: int | None = None,
-              password: str = "Secret123!", **overrides) -> User:
+def make_user(
+    db_session, *, role: str, ref_id: int | None = None, password: str = "Secret123!", **overrides
+) -> User:
     defaults = dict(
         email=f"{_unique(role)}@example.com",
         password_hash=hash_password(password),

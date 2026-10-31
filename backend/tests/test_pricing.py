@@ -47,7 +47,9 @@ def test_quote_has_no_one_cent_drift_across_realistic_seed_combinations():
             result = pricing.quote(ptype, si, risk_factor=rf)
 
             expected_net = sum(c["premium"] for c in result["coverages"])
-            assert result["net_premium"] == max(expected_net, Decimal(str(pricing.RATE_TABLE[ptype]["min_premium"])))
+            assert result["net_premium"] == max(
+                expected_net, Decimal(str(pricing.RATE_TABLE[ptype]["min_premium"]))
+            )
             assert result["total_premium"] == result["net_premium"] + result["taxes_fees"]
 
 

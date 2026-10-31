@@ -69,9 +69,7 @@ def test_agent_cannot_file_on_another_agents_policy(client, db_session):
 def test_supervisor_scope_covers_their_agents_only(client, db_session):
     supervisor, agent, owner, policy = _book(db_session)
     same_branch = make_user(db_session, role="supervisor", ref_id=supervisor.id)
-    other_branch = make_user(
-        db_session, role="supervisor", ref_id=make_supervisor(db_session).id
-    )
+    other_branch = make_user(db_session, role="supervisor", ref_id=make_supervisor(db_session).id)
 
     ok = client.post(
         "/claims", json=_payload(policy.id, str(date.today())), headers=auth_headers(same_branch)

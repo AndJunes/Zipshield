@@ -30,9 +30,7 @@ class _SharedSession:
 
 @pytest.fixture
 def shared_background_session(db_session, monkeypatch):
-    monkeypatch.setattr(
-        "app.claims.service.SessionLocal", lambda: _SharedSession(db_session)
-    )
+    monkeypatch.setattr("app.claims.service.SessionLocal", lambda: _SharedSession(db_session))
 
 
 def _actor_and_claim(db_session):

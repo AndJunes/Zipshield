@@ -43,18 +43,13 @@ def dashboard_summary(db: Session) -> dict:
     # The subquery gets the distinct client ids with an expired policy,
     # then we count how many there are.
     debtor_subquery = (
-        select(Policy.client_id)
-        .where(Policy.status == "expired")
-        .distinct()
-        .subquery()
+        select(Policy.client_id).where(Policy.status == "expired").distinct().subquery()
     )
     debtor_clients = db.scalar(select(func.count()).select_from(debtor_subquery)) or 0
 
     # Total value of active policies. coalesce turns a NULL sum (no rows) into 0.
     active_value = db.scalar(
-        select(func.coalesce(func.sum(Policy.price), 0)).where(
-            Policy.status == "in_force"
-        )
+        select(func.coalesce(func.sum(Policy.price), 0)).where(Policy.status == "in_force")
     )
 
     return {
@@ -67,5 +62,5 @@ def dashboard_summary(db: Session) -> dict:
         "active_policies": active_policies,
         "expired_policies": expired_policies,
         "debtor_clients": debtor_clients,
-        "active_policies_value": float(active_value),
+        "active_policies_value": float(active_value or 0),
     }

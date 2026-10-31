@@ -17,12 +17,16 @@ router = APIRouter(prefix="/policies", tags=["Policies"])
 
 
 @router.post("", response_model=PolicyRead, status_code=status.HTTP_201_CREATED)
-def create(data: PolicyCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def create(
+    data: PolicyCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)
+):
     return service.create_policy(db, data, actor_id=current_user.id)
 
 
 @router.post("/quote", response_model=QuoteResponse)
-def quote(data: QuoteRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def quote(
+    data: QuoteRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)
+):
     """Quote a policy without saving it (returns the premium breakdown)."""
     return service.quote_policy(db, data.type.value, data.sum_insured, client_id=data.client_id)
 

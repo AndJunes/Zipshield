@@ -5,16 +5,17 @@ Revises:
 Create Date: 2026-06-23
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "0001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -30,7 +31,12 @@ def upgrade() -> None:
         sa.Column("contribution", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("losses", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("photo_url", sa.String(500)),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     op.create_table(
@@ -46,7 +52,12 @@ def upgrade() -> None:
         sa.Column("contribution", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("losses", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("photo_url", sa.String(500)),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("supervisor_id", sa.Integer(), sa.ForeignKey("supervisors.id"), nullable=False),
     )
 
@@ -94,7 +105,12 @@ def upgrade() -> None:
         sa.Column("first_name", sa.String(100), nullable=False),
         sa.Column("last_name", sa.String(100), nullable=False),
         sa.Column("photo_url", sa.String(500)),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     op.create_table(
@@ -114,7 +130,12 @@ def upgrade() -> None:
         sa.Column("supporting_image_ids", sa.JSON(), nullable=False, server_default="[]"),
         sa.Column("valid_image", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("severity", sa.String(20), nullable=False, server_default="unknown"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
 

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+
 class SupervisorBase(BaseModel):
     first_name: str
     last_name: str
@@ -14,8 +15,10 @@ class SupervisorBase(BaseModel):
     losses: Decimal = Decimal(0)
     photo_url: str | None = None
 
+
 class SupervisorCreate(SupervisorBase):
     pass
+
 
 class SupervisorUpdate(BaseModel):
     first_name: str | None = None
@@ -26,6 +29,7 @@ class SupervisorUpdate(BaseModel):
     contribution: Decimal | None = None
     losses: Decimal | None = None
     photo_url: str | None = None
+
 
 class SupervisorRead(SupervisorBase):
     model_config = ConfigDict(from_attributes=True)

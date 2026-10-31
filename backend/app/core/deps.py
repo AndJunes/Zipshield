@@ -29,7 +29,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

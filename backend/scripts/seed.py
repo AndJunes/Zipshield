@@ -3,6 +3,7 @@
 Usage:
     python -m scripts.seed
 """
+
 import unicodedata
 from datetime import datetime
 
@@ -16,11 +17,10 @@ from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.policies.models import Policy  # noqa: F401  (registers the mapper)
 from app.supervisors.models import Supervisor
-
-from scripts.seed_data import AGENTS, SUPERVISORS
-from scripts.seed_clients import CLIENTS
 from scripts.seed_claims import CLAIMS
-from scripts.seed_policies import seed_policies, backfill_claim_policies
+from scripts.seed_clients import CLIENTS
+from scripts.seed_data import AGENTS, SUPERVISORS
+from scripts.seed_policies import backfill_claim_policies, seed_policies
 
 
 def slug(value: str) -> str:

@@ -1,10 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, DateTime, Numeric
+from sqlalchemy import DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.clients.models import Client
+    from app.supervisors.models import Supervisor
 
 
 class Agent(Base):
@@ -22,7 +27,7 @@ class Agent(Base):
     losses: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     photo_url: Mapped[str | None] = mapped_column(String(500), default=None)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
     supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))

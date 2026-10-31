@@ -11,9 +11,7 @@ from app.supervisors.models import Supervisor
 
 
 def _client_count(db: Session, agent_id: int) -> int:
-    return db.scalar(
-        select(func.count(Client.id)).where(Client.agent_id == agent_id)
-    ) or 0
+    return db.scalar(select(func.count(Client.id)).where(Client.agent_id == agent_id)) or 0
 
 
 def _claims_for_agent(db: Session, agent_id: int) -> AgentClaims:
@@ -77,15 +75,19 @@ def _claims_by_agent(db: Session, agent_ids: list[int]) -> dict[int, AgentClaims
         rejected = counts.get("contradicted", 0)
         in_progress = counts.get("not_enough_information", 0)
         result[agent_id] = AgentClaims(
-            resolved=granted + rejected, in_progress=in_progress,
-            granted=granted, rejected=rejected,
+            resolved=granted + rejected,
+            in_progress=in_progress,
+            granted=granted,
+            rejected=rejected,
         )
     return result
 
 
 def _to_read(
-    db: Session, agent: Agent,
-    client_count: int | None = None, claims: AgentClaims | None = None,
+    db: Session,
+    agent: Agent,
+    client_count: int | None = None,
+    claims: AgentClaims | None = None,
 ) -> AgentRead:
     data = AgentRead.model_validate(agent)
     data.client_count = client_count if client_count is not None else _client_count(db, agent.id)
@@ -132,9 +134,7 @@ def create_agent(db: Session, data: AgentCreate) -> AgentRead:
         raise NotFoundError("The referenced supervisor does not exist")
 
     # The agent number must be unique.
-    existing = db.scalar(
-        select(Agent).where(Agent.agent_number == data.agent_number)
-    )
+    existing = db.scalar(select(Agent).where(Agent.agent_number == data.agent_number))
     if existing is not None:
         raise ConflictError("An agent with this agent_number already exists")
 

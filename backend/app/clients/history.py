@@ -15,7 +15,7 @@ Product decisions:
   contradicted->rejected, not_enough_information->manual review.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -28,8 +28,8 @@ def _recent(claim: ClaimCase, cutoff: datetime) -> bool:
     ts = claim.created_at
     if ts is None:
         return False
-    if ts.tzinfo is None:                      # tolerate naive timestamps (e.g. SQLite)
-        ts = ts.replace(tzinfo=timezone.utc)
+    if ts.tzinfo is None:  # tolerate naive timestamps (e.g. SQLite)
+        ts = ts.replace(tzinfo=UTC)
     return ts >= cutoff
 
 
@@ -46,11 +46,12 @@ def _bucket(claim: ClaimCase) -> str:
         return "accept"
     if claim.claim_status == "contradicted":
         return "rejected"
-    return "manual_review"   # not_enough_information
+    return "manual_review"  # not_enough_information
 
 
-def _summary(past: int, accept: int, manual: int, rejected: int,
-             baseline_summary: str | None) -> str:
+def _summary(
+    past: int, accept: int, manual: int, rejected: int, baseline_summary: str | None
+) -> str:
     pending = past - accept - manual - rejected
     detail = []
     if accept:
@@ -68,7 +69,9 @@ def _summary(past: int, accept: int, manual: int, rejected: int,
 
 
 def compute_client_history(
-    db: Session, client: Client, exclude_id: int | None = None,
+    db: Session,
+    client: Client,
+    exclude_id: int | None = None,
     claims: list[ClaimCase] | None = None,
 ) -> ClientHistory:
     """Effective client history: baseline (seeded columns) + derived from claims.
@@ -88,7 +91,7 @@ def compute_client_history(
     elif exclude_id is not None:
         claims = [c for c in claims if c.id != exclude_id]
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+    cutoff = datetime.now(UTC) - timedelta(days=90)
     d_accept = d_manual = d_rejected = d_last90 = 0
     derived_flags: set[str] = set()
     for c in claims:
@@ -109,7 +112,7 @@ def compute_client_history(
     accept = (client.accept_claim or 0) + d_accept
     manual = (client.manual_review_claim or 0) + d_manual
     rejected = (client.rejected_claim or 0) + d_rejected
-    last90 = d_last90   # rolling window: derived only, no baseline
+    last90 = d_last90  # rolling window: derived only, no baseline
 
     flags = [f for f in (client.history_flags or []) if f != "none"]
     for f in sorted(derived_flags):
