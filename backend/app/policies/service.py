@@ -36,9 +36,9 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "pending_info": {"underwriting", "in_force", "declined"},
     "in_force": {"pending_cancel", "cancelled", "expired"},
     "pending_cancel": {"in_force", "cancelled"},
-    "cancelled": {"in_force"},   # reinstatement
-    "expired": {"in_force"},     # late renewal
-    "declined": set(),           # terminal
+    "cancelled": {"in_force"},  # reinstatement
+    "expired": {"in_force"},  # late renewal
+    "declined": set(),  # terminal
 }
 
 
@@ -96,8 +96,12 @@ def create_policy(db: Session, data: PolicyCreate, actor_id: int | None = None) 
         price=q["total_premium"],
         # `rating_factors` is JSON: Decimal is not serializable there, unlike the
         # Numeric columns above (which accept it directly).
-        rating_factors={"base_rate": float(q["base_rate"]), "risk_factor": float(q["risk_factor"]),
-                        "tax_rate": q["tax_rate"], "policy_fee": q["policy_fee"]},
+        rating_factors={
+            "base_rate": float(q["base_rate"]),
+            "risk_factor": float(q["risk_factor"]),
+            "tax_rate": q["tax_rate"],
+            "policy_fee": q["policy_fee"],
+        },
         coverage=data.coverage,
         client_id=data.client_id,
     )
@@ -105,10 +109,15 @@ def create_policy(db: Session, data: PolicyCreate, actor_id: int | None = None) 
         policy.coverages.append(Coverage(**c))
     db.add(policy)
     db.flush()
-    policy.events.append(PolicyEvent(
-        policy_id=policy.id, event_type="issued", to_status="in_force",
-        actor_id=actor_id, payload={"total_premium": float(q["total_premium"])},
-    ))
+    policy.events.append(
+        PolicyEvent(
+            policy_id=policy.id,
+            event_type="issued",
+            to_status="in_force",
+            actor_id=actor_id,
+            payload={"total_premium": float(q["total_premium"])},
+        )
+    )
     db.commit()
     db.refresh(policy)
     return policy
@@ -122,18 +131,25 @@ def sync_expired_policies(db: Session) -> int:
     requires a `current_user` for role scoping — this is a system transition, not a
     user's)."""
     today = date.today()
-    stale = list(db.scalars(
-        select(Policy).where(
-            Policy.status.in_(("in_force", "pending_cancel")),
-            Policy.expiration_date < today,
-        )
-    ).all())
+    stale = list(
+        db.scalars(
+            select(Policy).where(
+                Policy.status.in_(("in_force", "pending_cancel")),
+                Policy.expiration_date < today,
+            )
+        ).all()
+    )
     for policy in stale:
         previous = policy.status
         policy.status = "expired"
-        policy.events.append(PolicyEvent(
-            policy_id=policy.id, event_type="expired", from_status=previous, to_status="expired",
-        ))
+        policy.events.append(
+            PolicyEvent(
+                policy_id=policy.id,
+                event_type="expired",
+                from_status=previous,
+                to_status="expired",
+            )
+        )
     if stale:
         db.commit()
     return len(stale)
@@ -185,9 +201,7 @@ _TERMINAL_STATUSES = {"cancelled", "declined", "expired"}
 def update_policy(db: Session, policy_id: int, changes: PolicyUpdate, current_user: User) -> Policy:
     policy = get_policy(db, policy_id, current_user)
     if policy.status in _TERMINAL_STATUSES:
-        raise ConflictError(
-            f"Policy is in status '{policy.status}' and cannot be edited."
-        )
+        raise ConflictError(f"Policy is in status '{policy.status}' and cannot be edited.")
 
     updates = changes.model_dump(exclude_unset=True)
     new_expiration = updates.get("expiration_date", policy.expiration_date)
@@ -196,18 +210,27 @@ def update_policy(db: Session, policy_id: int, changes: PolicyUpdate, current_us
 
     for field, value in updates.items():
         setattr(policy, field, value)
-    policy.events.append(PolicyEvent(
-        policy_id=policy.id, event_type="updated",
-        payload={k: (v.isoformat() if isinstance(v, date) else v) for k, v in updates.items()},
-    ))
+    policy.events.append(
+        PolicyEvent(
+            policy_id=policy.id,
+            event_type="updated",
+            payload={k: (v.isoformat() if isinstance(v, date) else v) for k, v in updates.items()},
+        )
+    )
     db.commit()
     db.refresh(policy)
     return policy
 
 
-def transition_status(db: Session, policy_id: int, to_status: str, current_user: User,
-                      actor_id: int | None = None,
-                      reason: str | None = None, event_type: str | None = None) -> Policy:
+def transition_status(
+    db: Session,
+    policy_id: int,
+    to_status: str,
+    current_user: User,
+    actor_id: int | None = None,
+    reason: str | None = None,
+    event_type: str | None = None,
+) -> Policy:
     """Change the status validating the state machine, and record the event in the timeline."""
     policy = get_policy(db, policy_id, current_user)
     if to_status not in ALLOWED_TRANSITIONS.get(policy.status, set()):
@@ -217,20 +240,37 @@ def transition_status(db: Session, policy_id: int, to_status: str, current_user:
     if to_status == "cancelled":
         policy.cancel_date = date.today()
         policy.cancel_reason = reason or "insured_request"
-    policy.events.append(PolicyEvent(
-        policy_id=policy.id, event_type=event_type or to_status,
-        from_status=previous, to_status=to_status, actor_id=actor_id,
-        payload={"reason": reason} if reason else {},
-    ))
+    policy.events.append(
+        PolicyEvent(
+            policy_id=policy.id,
+            event_type=event_type or to_status,
+            from_status=previous,
+            to_status=to_status,
+            actor_id=actor_id,
+            payload={"reason": reason} if reason else {},
+        )
+    )
     db.commit()
     db.refresh(policy)
     return policy
 
 
-def cancel_policy(db: Session, policy_id: int, current_user: User, reason: str = "insured_request",
-                  actor_id: int | None = None) -> Policy:
-    return transition_status(db, policy_id, "cancelled", current_user, actor_id=actor_id,
-                             reason=reason, event_type="cancelled")
+def cancel_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+    reason: str = "insured_request",
+    actor_id: int | None = None,
+) -> Policy:
+    return transition_status(
+        db,
+        policy_id,
+        "cancelled",
+        current_user,
+        actor_id=actor_id,
+        reason=reason,
+        event_type="cancelled",
+    )
 
 
 def can_file_claim(policy: Policy | None, date_of_loss: date | None) -> bool:

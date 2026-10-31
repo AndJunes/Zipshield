@@ -1,6 +1,6 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
-from sqlalchemy import String, DateTime, Text, Boolean, JSON, Date, ForeignKey
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -32,9 +32,7 @@ class ClaimCase(Base):
     )
     date_of_loss: Mapped[date | None] = mapped_column(Date, default=None)
     # Lifecycle of the background AI analysis: none -> pending -> done | failed.
-    analysis_status: Mapped[str] = mapped_column(
-        String(10), default="none", server_default="none"
-    )
+    analysis_status: Mapped[str] = mapped_column(String(10), default="none", server_default="none")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

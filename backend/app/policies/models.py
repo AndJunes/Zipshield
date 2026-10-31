@@ -1,16 +1,20 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Numeric, Date, DateTime, Integer, JSON, ForeignKey
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.clients.models import Client
 
 
 class Policy(Base):
     __tablename__ = "policies"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    type: Mapped[str] = mapped_column(String(20))          # car | laptop | package (LOB)
+    type: Mapped[str] = mapped_column(String(20))  # car | laptop | package (LOB)
     name: Mapped[str] = mapped_column(String(150))
     status: Mapped[str] = mapped_column(String(20), default="in_force", index=True)
 
@@ -27,10 +31,14 @@ class Policy(Base):
     risk_factor: Mapped[float] = mapped_column(Numeric(5, 3), default=1)
     net_premium: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     taxes_fees: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
-    price: Mapped[float] = mapped_column(Numeric(12, 2))    # total premium (= net_premium + taxes_fees)
+    price: Mapped[float] = mapped_column(
+        Numeric(12, 2)
+    )  # total premium (= net_premium + taxes_fees)
     rating_factors: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    coverage: Mapped[str | None] = mapped_column(String(500), default=None)  # human-readable description
+    coverage: Mapped[str | None] = mapped_column(
+        String(500), default=None
+    )  # human-readable description
 
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"))
     client: Mapped["Client"] = relationship(back_populates="policies")
@@ -67,13 +75,15 @@ class PolicyEvent(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     policy_id: Mapped[int] = mapped_column(ForeignKey("policies.id"), index=True)
-    event_type: Mapped[str] = mapped_column(String(40))   # issued | endorsed | renewed | cancelled | payment | claim_filed
+    event_type: Mapped[str] = mapped_column(
+        String(40)
+    )  # issued | endorsed | renewed | cancelled | payment | claim_filed
     from_status: Mapped[str | None] = mapped_column(String(20), default=None)
     to_status: Mapped[str | None] = mapped_column(String(20), default=None)
     actor_id: Mapped[int | None] = mapped_column(Integer, default=None)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
     policy: Mapped["Policy"] = relationship(back_populates="events")

@@ -1,9 +1,10 @@
 import logging
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.models import User
 from app.agents.models import Agent
+from app.auth.models import User
 from app.claims.models import ClaimCase
 from app.claims.schemas import ClaimCreate, ClaimUpdate
 from app.clients.models import Client
@@ -17,16 +18,12 @@ log = logging.getLogger(__name__)
 
 def _scope_by_role(query, db: Session, current_user: User):
     if current_user.role == "supervisor" and current_user.ref_id is not None:
-        agent_ids_subquery = db.query(Agent.id).filter(Agent.supervisor_id == current_user.ref_id).subquery()
-        user_ids_subquery = (
-            db.query(Client.user_id).filter(Client.agent_id.in_(agent_ids_subquery)).subquery()
-        )
-        return query.filter(ClaimCase.user_id.in_(user_ids_subquery))
+        agent_ids = select(Agent.id).where(Agent.supervisor_id == current_user.ref_id)
+        user_ids = select(Client.user_id).where(Client.agent_id.in_(agent_ids))
+        return query.filter(ClaimCase.user_id.in_(user_ids))
     if current_user.role == "agent" and current_user.ref_id is not None:
-        user_ids_subquery = (
-            db.query(Client.user_id).filter(Client.agent_id == current_user.ref_id).subquery()
-        )
-        return query.filter(ClaimCase.user_id.in_(user_ids_subquery))
+        user_ids = select(Client.user_id).where(Client.agent_id == current_user.ref_id)
+        return query.filter(ClaimCase.user_id.in_(user_ids))
     return query
 
 

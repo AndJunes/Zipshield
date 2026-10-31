@@ -8,34 +8,98 @@ untrusted text and decodes common encodings, so the guard can scan all of them.
 Pure Python, deterministic, no third-party dependencies.
 """
 
-import re
 import base64
 import codecs
+import re
 import unicodedata
 from urllib.parse import unquote
 
 # Zero-width and bidi control characters used to hide or reorder text.
 _INVISIBLE = dict.fromkeys(
-    [0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d,
-     0x202e, 0x2060, 0x2061, 0x2062, 0x2063, 0xfeff], None
+    [
+        0x200B,
+        0x200C,
+        0x200D,
+        0x200E,
+        0x200F,
+        0x202A,
+        0x202B,
+        0x202C,
+        0x202D,
+        0x202E,
+        0x2060,
+        0x2061,
+        0x2062,
+        0x2063,
+        0xFEFF,
+    ],
+    None,
 )
 
 # Common homoglyphs (Cyrillic / Greek / full-width) -> ASCII. Compact high-value subset.
 _HOMOGLYPHS = {
-    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x", "у": "y", "ѕ": "s",
-    "і": "i", "ј": "j", "к": "k", "м": "m", "н": "h", "т": "t", "в": "b", "ԁ": "d",
-    "α": "a", "ο": "o", "ρ": "p", "ε": "e", "ι": "i", "κ": "k", "ν": "v", "τ": "t",
-    "ѵ": "v", "ⅼ": "l", "ｏ": "o", "ｉ": "i", "ɡ": "g", "ﬁ": "fi",
+    "а": "a",
+    "е": "e",
+    "о": "o",
+    "р": "p",
+    "с": "c",
+    "х": "x",
+    "у": "y",
+    "ѕ": "s",
+    "і": "i",
+    "ј": "j",
+    "к": "k",
+    "м": "m",
+    "н": "h",
+    "т": "t",
+    "в": "b",
+    "ԁ": "d",
+    "α": "a",
+    "ο": "o",
+    "ρ": "p",
+    "ε": "e",
+    "ι": "i",
+    "κ": "k",
+    "ν": "v",
+    "τ": "t",
+    "ѵ": "v",
+    "ⅼ": "l",
+    "ｏ": "o",
+    "ｉ": "i",
+    "ɡ": "g",
+    "ﬁ": "fi",
 }
 
 # Leetspeak -> letter.
 _LEET = {"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "|": "l"}
 
 _MORSE = {
-    ".-": "a", "-...": "b", "-.-.": "c", "-..": "d", ".": "e", "..-.": "f", "--.": "g",
-    "....": "h", "..": "i", ".---": "j", "-.-": "k", ".-..": "l", "--": "m", "-.": "n",
-    "---": "o", ".--.": "p", "--.-": "q", ".-.": "r", "...": "s", "-": "t", "..-": "u",
-    "...-": "v", ".--": "w", "-..-": "x", "-.--": "y", "--..": "z",
+    ".-": "a",
+    "-...": "b",
+    "-.-.": "c",
+    "-..": "d",
+    ".": "e",
+    "..-.": "f",
+    "--.": "g",
+    "....": "h",
+    "..": "i",
+    ".---": "j",
+    "-.-": "k",
+    ".-..": "l",
+    "--": "m",
+    "-.": "n",
+    "---": "o",
+    ".--.": "p",
+    "--.-": "q",
+    ".-.": "r",
+    "...": "s",
+    "-": "t",
+    "..-": "u",
+    "...-": "v",
+    ".--": "w",
+    "-..-": "x",
+    "-.--": "y",
+    "--..": "z",
 }
 
 _B64_RE = re.compile(r"[A-Za-z0-9+/]{16,}={0,2}")
@@ -58,8 +122,9 @@ def _fold_leet(text):
 
 def _despace_letter_runs(text):
     # "i g n o r e" -> "ignore" (only collapses runs of single chars separated by spaces).
-    return re.sub(r"\b(?:\w[ \t]){2,}\w\b",
-                  lambda m: m.group(0).replace(" ", "").replace("\t", ""), text)
+    return re.sub(
+        r"\b(?:\w[ \t]){2,}\w\b", lambda m: m.group(0).replace(" ", "").replace("\t", ""), text
+    )
 
 
 def canonical_views(text):

@@ -21,15 +21,16 @@ from sqlalchemy.orm import Session
 from app.claims.models import ClaimCase
 from app.clients.history import compute_client_history
 from app.clients.models import Client
-from app.policies.models import Policy
 from app.core.config import get_settings
 from app.llm import guard, prompts, reference, schema
 from app.llm.client import OpenRouterClient
+from app.policies.models import Policy
 
 log = logging.getLogger("zipshield.llm")
 
 
 # --- Public API ------------------------------------------------------------------
+
 
 def analyze_claim(db: Session, claim: ClaimCase, client=None) -> dict:
     """Analyze a claim and return the 10 fields ready to persist on ClaimCase."""
@@ -37,8 +38,15 @@ def analyze_claim(db: Session, claim: ClaimCase, client=None) -> dict:
     history = build_user_history(db, claim.user_id, exclude_id=claim.id)
     requirements = reference.requirements_for(claim.object)
     coverage_text = _coverage_context(db, claim)
-    return _review(claim.object, claim.conversation, list(claim.image_urls or []),
-                   history, requirements, client, coverage_text=coverage_text)
+    return _review(
+        claim.object,
+        claim.conversation,
+        list(claim.image_urls or []),
+        history,
+        requirements,
+        client,
+        coverage_text=coverage_text,
+    )
 
 
 def _coverage_context(db: Session, claim: ClaimCase) -> str:
@@ -49,12 +57,17 @@ def _coverage_context(db: Session, claim: ClaimCase) -> str:
     policy = db.get(Policy, policy_id)
     if policy is None:
         return ""
-    covs = "; ".join(
-        f"{c.name} (límite ${float(c.limit_amount):.0f}, deducible ${float(c.deductible):.0f})"
-        for c in policy.coverages
-    ) or "(sin coberturas)"
-    return (f"Póliza tipo {policy.type}, estado '{policy.status}', vigencia "
-            f"{policy.effective_date} a {policy.expiration_date}. Coberturas: {covs}.")
+    covs = (
+        "; ".join(
+            f"{c.name} (límite ${float(c.limit_amount):.0f}, deducible ${float(c.deductible):.0f})"
+            for c in policy.coverages
+        )
+        or "(sin coberturas)"
+    )
+    return (
+        f"Póliza tipo {policy.type}, estado '{policy.status}', vigencia "
+        f"{policy.effective_date} a {policy.expiration_date}. Coberturas: {covs}."
+    )
 
 
 def build_user_history(db: Session, user_id: str, exclude_id=None) -> dict:
@@ -79,11 +92,12 @@ def build_user_history(db: Session, user_id: str, exclude_id=None) -> dict:
 
 # --- Internals -------------------------------------------------------------------
 
+
 def _parse_json(text):
     text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
     start, end = text.find("{"), text.rfind("}")
     if start != -1 and end != -1:
-        text = text[start:end + 1]
+        text = text[start : end + 1]
     return json.loads(text)
 
 
@@ -94,8 +108,11 @@ def _context_texts(history, requirements):
         v = str((history or {}).get(k, "")).strip()
         if v:
             hist.append(v)
-    req = [str(r.get("minimum_image_evidence", "")).strip()
-           for r in (requirements or []) if str(r.get("minimum_image_evidence", "")).strip()]
+    req = [
+        str(r.get("minimum_image_evidence", "")).strip()
+        for r in (requirements or [])
+        if str(r.get("minimum_image_evidence", "")).strip()
+    ]
     return {"user_history": " ".join(hist), "evidence_requirements": " ".join(req)}
 
 
@@ -137,23 +154,25 @@ def _to_db_fields(fields: dict) -> dict:
     }
 
 
-def _review(object_type, conversation, image_urls, history, requirements, client,
-            coverage_text=None) -> dict:
+def _review(
+    object_type, conversation, image_urls, history, requirements, client, coverage_text=None
+) -> dict:
     """DB-free core: testable by passing a fake `client` (no network)."""
     provided_ids = [f"img_{i + 1}" for i in range(len(image_urls))]
     guard_result = guard.analyze(conversation or "", None, _context_texts(history, requirements))
 
     # No images means no visual review is possible -> safe degradation.
     if not image_urls:
-        fields = schema.enforce_consistency(_empty_fields(), guard_result, [],
-                                            audit=["NO_USABLE_IMAGES"])
+        fields = schema.enforce_consistency(
+            _empty_fields(), guard_result, [], audit=["NO_USABLE_IMAGES"]
+        )
         return _to_db_fields(fields)
 
     claim_dict = {"claim_object": object_type, "user_claim": conversation}
     sys_prompt = prompts.system_prompt(spotlight=True)
-    user_prompt = prompts.build_user_prompt(claim_dict, history, requirements,
-                                            provided_ids, spotlight=True,
-                                            coverage_text=coverage_text)
+    user_prompt = prompts.build_user_prompt(
+        claim_dict, history, requirements, provided_ids, spotlight=True, coverage_text=coverage_text
+    )
     rf = schema.output_response_format() if get_settings().llm_use_json_schema else None
 
     # Main call: network/credential errors PROPAGATE to the caller.
@@ -165,8 +184,10 @@ def _review(object_type, conversation, image_urls, history, requirements, client
         try:
             parsed = _parse_json(raw_text)
         except json.JSONDecodeError:
-            strict = user_prompt + ("\n\nIMPORTANT: respond with ONLY a valid JSON object, "
-                                    "no prose, and escape any inner quotes.")
+            strict = user_prompt + (
+                "\n\nIMPORTANT: respond with ONLY a valid JSON object, "
+                "no prose, and escape any inner quotes."
+            )
             # This retry can also fail on network/credentials, not just invalid JSON —
             # that case must propagate like the main call above, not be treated as
             # invalid model output (see the explicit `except RuntimeError` below).
@@ -176,12 +197,13 @@ def _review(object_type, conversation, image_urls, history, requirements, client
         # The model returned JSON but omitted the main decision key.
         if not (isinstance(parsed, dict) and "claim_status" in parsed):
             codes.append("OUTPUT_INCOMPLETE")
-            fields["risk_flags"] = schema.merge_flags(fields.get("risk_flags", "none"),
-                                                      ["manual_review_required"])
+            fields["risk_flags"] = schema.merge_flags(
+                fields.get("risk_flags", "none"), ["manual_review_required"]
+            )
     except RuntimeError:
         # Provider network/credential errors: propagate, never degrade.
         raise
-    except Exception as e:   # invalid model output -> safe degradation
+    except Exception as e:  # invalid model output -> safe degradation
         log.warning("Invalid model output: %s", e)
         fields = schema.validate({}, object_type, provided_ids)
         fields["claim_status"] = "not_enough_information"
@@ -193,6 +215,7 @@ def _review(object_type, conversation, image_urls, history, requirements, client
     fields = schema.enforce_consistency(fields, guard_result, provided_ids, audit=codes)
     if not codes:
         codes.append("CLEAN")
-    log.info("Claim analyzed: raw=%s final=%s codes=%s",
-             raw_status, fields.get("claim_status"), codes)
+    log.info(
+        "Claim analyzed: raw=%s final=%s codes=%s", raw_status, fields.get("claim_status"), codes
+    )
     return _to_db_fields(fields)

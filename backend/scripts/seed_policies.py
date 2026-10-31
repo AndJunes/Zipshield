@@ -8,21 +8,22 @@ the listing looks realistic.
 Standalone usage (does NOT touch clients/claims):
     .venv/bin/python -m scripts.seed_policies
 """
+
 from datetime import date, timedelta
 
 from sqlalchemy import select, text
 
+from app.agents import models as _agents  # noqa: F401
+
+# Import the remaining models so the mapper registry is complete (relationships).
+from app.auth import models as _auth  # noqa: F401
+from app.claims.models import ClaimCase
 from app.clients.models import Client
 from app.core.database import SessionLocal
 from app.policies import pricing
 from app.policies.models import Coverage, Policy, PolicyEvent
-from scripts.seed_claims import CLAIMS
-
-# Import the remaining models so the mapper registry is complete (relationships).
-from app.auth import models as _auth  # noqa: F401
 from app.supervisors import models as _supervisors  # noqa: F401
-from app.agents import models as _agents  # noqa: F401
-from app.claims.models import ClaimCase
+from scripts.seed_claims import CLAIMS
 
 SUM_INSURED = {"car": 18000, "laptop": 1500, "package": 600}
 RISK_FACTORS = [1.0, 1.0, 1.15, 0.9, 1.0, 1.25, 0.95]
@@ -54,9 +55,17 @@ def seed_policies(db) -> int:
         cancel_date = None
         cancel_reason = None
         if i % 9 == 0:
-            status, effective, expiration = "expired", today - timedelta(days=400), today - timedelta(days=35)
+            status, effective, expiration = (
+                "expired",
+                today - timedelta(days=400),
+                today - timedelta(days=35),
+            )
         elif i % 13 == 0:
-            status, cancel_date, cancel_reason = "cancelled", today - timedelta(days=20), "insured_request"
+            status, cancel_date, cancel_reason = (
+                "cancelled",
+                today - timedelta(days=20),
+                "insured_request",
+            )
         elif i % 7 == 0:
             expiration = today + timedelta(days=20)  # expiring soon
 
@@ -76,24 +85,36 @@ def seed_policies(db) -> int:
             taxes_fees=q["taxes_fees"],
             price=q["total_premium"],
             # `rating_factors` is JSON: Decimal is not serializable there.
-            rating_factors={"base_rate": float(q["base_rate"]), "risk_factor": rf,
-                            "tax_rate": q["tax_rate"], "policy_fee": q["policy_fee"]},
+            rating_factors={
+                "base_rate": float(q["base_rate"]),
+                "risk_factor": rf,
+                "tax_rate": q["tax_rate"],
+                "policy_fee": q["policy_fee"],
+            },
             client_id=client.id,
         )
         for c in q["coverages"]:
             policy.coverages.append(Coverage(**c))
         db.add(policy)
         db.flush()
-        policy.events.append(PolicyEvent(
-            policy_id=policy.id, event_type="issued", to_status="in_force",
-            payload={"total_premium": float(q["total_premium"])},
-        ))
+        policy.events.append(
+            PolicyEvent(
+                policy_id=policy.id,
+                event_type="issued",
+                to_status="in_force",
+                payload={"total_premium": float(q["total_premium"])},
+            )
+        )
         if status == "cancelled":
-            policy.events.append(PolicyEvent(
-                policy_id=policy.id, event_type="cancelled",
-                from_status="in_force", to_status="cancelled",
-                payload={"reason": cancel_reason},
-            ))
+            policy.events.append(
+                PolicyEvent(
+                    policy_id=policy.id,
+                    event_type="cancelled",
+                    from_status="in_force",
+                    to_status="cancelled",
+                    payload={"reason": cancel_reason},
+                )
+            )
         count += 1
     db.commit()
     return count
@@ -121,7 +142,9 @@ def backfill_claim_policies(db) -> int:
 def main() -> None:
     db = SessionLocal()
     try:
-        db.execute(text("UPDATE claims SET policy_id = NULL"))   # break the FK before deleting policies
+        db.execute(
+            text("UPDATE claims SET policy_id = NULL")
+        )  # break the FK before deleting policies
         db.execute(text("DELETE FROM policy_events"))
         db.execute(text("DELETE FROM coverages"))
         db.execute(text("DELETE FROM policies"))

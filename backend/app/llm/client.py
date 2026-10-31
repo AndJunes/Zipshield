@@ -6,6 +6,7 @@ provider rejects it (400/422).
 """
 
 import time
+from typing import Any
 
 import httpx
 
@@ -31,7 +32,7 @@ class OpenRouterClient:
                 "(you can reuse your OpenRouter key)."
             )
 
-        content = [{"type": "text", "text": user_text}]
+        content: list[dict[str, Any]] = [{"type": "text", "text": user_text}]
         for url in image_urls:
             content.append({"type": "image_url", "image_url": {"url": url}})
 
@@ -77,12 +78,12 @@ class OpenRouterClient:
                     payload = {k: v for k, v in payload.items() if k != "response_format"}
                     dropped_rf = True
                     continue
-                if r.status_code in (429, 500, 502, 503):       # transient -> retry
+                if r.status_code in (429, 500, 502, 503):  # transient -> retry
                     last = f"HTTP {r.status_code}"
-                    time.sleep(2 ** attempt)
+                    time.sleep(2**attempt)
                     continue
                 raise RuntimeError(f"OpenRouter HTTP {r.status_code}: {r.text[:300]}")
             except httpx.RequestError as e:
                 last = str(e)
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         raise RuntimeError(f"OpenRouter failed after {self.max_retries} attempts: {last}")

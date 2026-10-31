@@ -41,7 +41,7 @@ A FastAPI backend and an Angular 22 frontend that model the actual workflow of a
 
 | | |
 |---|---|
-| Backend | FastAPI, SQLAlchemy 2.0, PostgreSQL, Alembic, JWT (python jose), passlib/bcrypt, Pydantic v2 |
+| Backend | FastAPI, SQLAlchemy 2.0, PostgreSQL, Alembic, PyJWT, pwdlib (Argon2), Pydantic v2, typed and linted (mypy, ruff) |
 | AI | OpenRouter, using a vision capable model (gemini 2.5 flash lite by default) |
 | Frontend | Angular 22 (standalone, zoneless, signals), Tailwind CSS v4, RxJS |
 | Tests | pytest on the backend (73 tests), Vitest on the frontend (25 tests). The backend suite runs against an isolated SQLite file, so Postgres and Docker are not required just to test |
@@ -64,12 +64,11 @@ Each subproject has its own README with setup details, environment variables, an
 # Backend
 cd backend
 docker compose up -d postgres
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 cp .env.example .env              # add your OPENROUTER_API_KEY if you want to try the AI review
-alembic upgrade head
-python -m scripts.seed            # seeds about 130 clients, 44 policies and 50 claims
-uvicorn app.main:app --reload
+uv run alembic upgrade head
+uv run python -m scripts.seed     # seeds about 130 clients, 44 policies and 50 claims
+uv run uvicorn app.main:app --reload
 
 # Frontend, in another terminal
 cd frontend
@@ -95,7 +94,7 @@ The login screen has chips for every seeded account so you don't need to remembe
 
 ```bash
 # Backend. No Postgres or Docker needed
-cd backend && python -m pytest -q
+cd backend && uv run pytest -q
 
 # Frontend
 cd frontend && npx ng test --watch=false

@@ -5,7 +5,14 @@ uses) and report 0 active policies regardless of the real data."""
 
 from datetime import date, timedelta
 
-from tests.conftest import auth_headers, make_agent, make_client, make_policy, make_supervisor, make_user
+from tests.conftest import (
+    auth_headers,
+    make_agent,
+    make_client,
+    make_policy,
+    make_supervisor,
+    make_user,
+)
 
 
 def _lapsed_policy(db_session, **overrides):
@@ -46,7 +53,9 @@ def test_pending_cancel_policy_also_expires_once_lapsed(client, db_session):
 def test_already_cancelled_policy_is_not_reclassified_as_expired(client, db_session):
     """A cancelled policy, even when its expiration date is also in the past, must not
     become 'expired' — the client cancelled it, they did not let it lapse."""
-    user, policy = _lapsed_policy(db_session, status="cancelled", cancel_date=date.today() - timedelta(days=40))
+    user, policy = _lapsed_policy(
+        db_session, status="cancelled", cancel_date=date.today() - timedelta(days=40)
+    )
 
     client.get(f"/policies/{policy.id}", headers=auth_headers(user))
 

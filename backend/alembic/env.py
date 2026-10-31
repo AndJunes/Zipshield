@@ -3,17 +3,16 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
-from app.core.config import get_settings
-from app.core.database import Base
+from app.agents import models as _agents  # noqa: F401
 
 # Import all models so Alembic sees them on autogenerate
 from app.auth import models as _auth  # noqa: F401
-from app.supervisors import models as _supervisors  # noqa: F401
-from app.agents import models as _agents  # noqa: F401
-from app.clients import models as _clients  # noqa: F401
-from app.policies import models as _policies  # noqa: F401
 from app.claims import models as _claims  # noqa: F401
+from app.clients import models as _clients  # noqa: F401
+from app.core.config import get_settings
+from app.core.database import Base
+from app.policies import models as _policies  # noqa: F401
+from app.supervisors import models as _supervisors  # noqa: F401
 
 config = context.config
 settings = get_settings()

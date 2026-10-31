@@ -1,9 +1,16 @@
 """Policy update regression tests: `update_policy` must enforce the state-machine guard,
 validate date ordering, and leave an audit trail (`PolicyEvent`)."""
 
-from datetime import date, timedelta
+from datetime import timedelta
 
-from tests.conftest import auth_headers, make_agent, make_client, make_policy, make_supervisor, make_user
+from tests.conftest import (
+    auth_headers,
+    make_agent,
+    make_client,
+    make_policy,
+    make_supervisor,
+    make_user,
+)
 
 
 def _agent_and_policy(db_session, **policy_overrides):

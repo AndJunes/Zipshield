@@ -42,9 +42,7 @@ class Settings(BaseSettings):
             if getattr(self, name) == defaults[name]
         ]
         if len(self.jwt_secret.encode()) < 32:
-            problems.append(
-                "JWT_SECRET is shorter than the 32 bytes RFC 7518 requires for HS256"
-            )
+            problems.append("JWT_SECRET is shorter than the 32 bytes RFC 7518 requires for HS256")
         if problems:
             raise RuntimeError("Refusing to start in production: " + "; ".join(problems))
 

@@ -19,9 +19,15 @@ def _agent_counts_by_supervisor(db: Session, supervisor_ids: list[int]) -> dict[
     return {supervisor_id: n for supervisor_id, n in rows}
 
 
-def _attach_agent_count(db: Session, supervisor: Supervisor, agent_count: int | None = None) -> SupervisorRead:
-    count = agent_count if agent_count is not None else (
-        db.scalar(select(func.count(Agent.id)).where(Agent.supervisor_id == supervisor.id)) or 0
+def _attach_agent_count(
+    db: Session, supervisor: Supervisor, agent_count: int | None = None
+) -> SupervisorRead:
+    count = (
+        agent_count
+        if agent_count is not None
+        else (
+            db.scalar(select(func.count(Agent.id)).where(Agent.supervisor_id == supervisor.id)) or 0
+        )
     )
     data = SupervisorRead.model_validate(supervisor)
     data.agent_count = count

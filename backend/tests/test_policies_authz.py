@@ -1,7 +1,14 @@
 """Authorization regression tests for policies: /policies must be authorized — an
 authenticated user must not see/edit/cancel arbitrary policies in the system."""
 
-from tests.conftest import auth_headers, make_agent, make_client, make_policy, make_supervisor, make_user
+from tests.conftest import (
+    auth_headers,
+    make_agent,
+    make_client,
+    make_policy,
+    make_supervisor,
+    make_user,
+)
 
 
 def test_agent_can_list_and_read_own_client_policy(client, db_session):

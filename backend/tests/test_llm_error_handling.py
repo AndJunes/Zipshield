@@ -7,11 +7,17 @@ import json
 
 import pytest
 
+from app.core.config import get_settings
 from app.llm import service as llm_service
 from app.llm.client import OpenRouterClient
-from app.core.config import get_settings
-
-from tests.conftest import auth_headers, make_agent, make_claim, make_client, make_supervisor, make_user
+from tests.conftest import (
+    auth_headers,
+    make_agent,
+    make_claim,
+    make_client,
+    make_supervisor,
+    make_user,
+)
 
 
 class _FakeResponse:
@@ -73,8 +79,12 @@ def test_review_propagates_runtime_error_from_the_retry_call_instead_of_degradin
 
     with pytest.raises(RuntimeError):
         llm_service._review(
-            "car", "I crashed the car", ["http://img.test/1.jpg"],
-            history={}, requirements=[], client=fake_client,
+            "car",
+            "I crashed the car",
+            ["http://img.test/1.jpg"],
+            history={},
+            requirements=[],
+            client=fake_client,
         )
     assert fake_client.calls == 2  # the strict-mode retry was attempted before failing
 
@@ -84,9 +94,7 @@ def test_malformed_llm_response_ends_as_failed_never_a_500(client, db_session, m
     from the provider must end as analysis_status="failed", never as a raw 500."""
     from tests.test_claims_analysis import _SharedSession
 
-    monkeypatch.setattr(
-        "app.claims.service.SessionLocal", lambda: _SharedSession(db_session)
-    )
+    monkeypatch.setattr("app.claims.service.SessionLocal", lambda: _SharedSession(db_session))
     monkeypatch.setattr(get_settings(), "openrouter_api_key", "test-key")
     monkeypatch.setattr(
         "app.llm.client.httpx.post",

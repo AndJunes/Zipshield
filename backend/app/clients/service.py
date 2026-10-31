@@ -20,9 +20,7 @@ def _filter_by_role(stmt, current_user: User):
     if current_user.role == "agent" and current_user.ref_id is not None:
         return stmt.where(Client.agent_id == current_user.ref_id)
     if current_user.role == "supervisor" and current_user.ref_id is not None:
-        agent_ids = select(Agent.id).where(
-            Agent.supervisor_id == current_user.ref_id
-        )
+        agent_ids = select(Agent.id).where(Agent.supervisor_id == current_user.ref_id)
         return stmt.where(Client.agent_id.in_(agent_ids))
     return stmt
 
@@ -60,9 +58,7 @@ def create_client(db: Session, data: ClientCreate) -> ClientRead:
     if agent is None:
         raise NotFoundError("The referenced agent does not exist")
 
-    existing = db.scalar(
-        select(Client).where(Client.client_number == data.client_number)
-    )
+    existing = db.scalar(select(Client).where(Client.client_number == data.client_number))
     if existing is not None:
         raise ConflictError("A client with this client_number already exists")
 
@@ -75,7 +71,9 @@ def create_client(db: Session, data: ClientCreate) -> ClientRead:
     return _to_read(db, client)
 
 
-def update_client(db: Session, client_id: int, changes: ClientUpdate, current_user: User) -> ClientRead:
+def update_client(
+    db: Session, client_id: int, changes: ClientUpdate, current_user: User
+) -> ClientRead:
     client = _get_client_orm(db, client_id, current_user)
     for field, value in changes.model_dump(exclude_unset=True).items():
         setattr(client, field, value)
