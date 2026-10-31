@@ -38,11 +38,10 @@ export type ApiClaimPatch = Partial<{
 }>;
 
 export interface ApiClaimCreate {
-  user_id: string;
   object: 'car' | 'laptop' | 'package';
   conversation: string;
   image_urls: string[];
-  policy_id: number | null;
+  policy_id: number;
   date_of_loss: string | null;
 }
 
@@ -87,14 +86,16 @@ export function fromClaimPartial(partial: Partial<ClaimCase>): ApiClaimPatch {
 }
 
 export function fromClaimCreate(
-  input: Pick<ClaimCase, 'userId' | 'object' | 'conversation' | 'imageUrls' | 'policyId' | 'dateOfLoss'>,
+  input: Pick<ClaimCase, 'object' | 'conversation' | 'imageUrls' | 'dateOfLoss'> & {
+    policyId: number;
+  },
 ): ApiClaimCreate {
+  // The claimant is derived server-side from the policy, so no user_id is sent.
   return {
-    user_id: input.userId,
     object: input.object,
     conversation: input.conversation,
     image_urls: input.imageUrls,
-    policy_id: input.policyId ?? null,
+    policy_id: input.policyId,
     date_of_loss: input.dateOfLoss ?? null,
   };
 }

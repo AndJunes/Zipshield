@@ -47,9 +47,9 @@ export class ClaimsDetails {
     object: this.fb.control<ClaimObject>('car'),
     conversation: ['', Validators.required],
     imageUrls: this.fb.array<FormControl<string>>([this.fb.control('')]),
-    // Without these two fields, every claim created from the UI kept policyId=null
-    // forever and never showed up in the corresponding policy's "Reclamos" tab.
-    policyId: this.fb.control<number | null>(null),
+    // The API requires a policy: the claimant is derived from it on the server,
+    // so the client selector above only narrows this list down.
+    policyId: this.fb.control<number | null>(null, Validators.required),
     dateOfLoss: [''],
   });
 
@@ -152,8 +152,8 @@ export class ClaimsDetails {
       return;
     }
     const raw = this.createForm.getRawValue();
+    if (raw.policyId === null) return; // unreachable: the validator already requires it
     const input: ClaimInput = {
-      userId: raw.userId,
       object: raw.object,
       conversation: raw.conversation,
       imageUrls: raw.imageUrls.map((u) => u.trim()).filter((u) => u.length > 0),
